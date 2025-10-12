@@ -1,6 +1,5 @@
 package com.dcava.dcava_backend.controller;
 
-
 import com.dcava.dcava_backend.model.UserAdmin;
 import com.dcava.dcava_backend.service.UserAdminService;
 import com.google.firebase.auth.FirebaseAuth;
@@ -57,7 +56,7 @@ public class UserAdminController {
         String uid = authentication.getName();
         return userService.findByUid(uid)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found")); //Puede dar problemas
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
     }
 }
 

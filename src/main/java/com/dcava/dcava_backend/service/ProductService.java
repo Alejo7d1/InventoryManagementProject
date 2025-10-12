@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,13 +19,17 @@ public class ProductService {
         this.productRepo = productRepo;
     }
 
-    public Page<Product> search(String text, int page, String sortOrder) {
-        Sort sort = Sort.by("id");
-        if (sortOrder != null && sortOrder.startsWith("stock_")) {
-            sort = Sort.by("stock");
-            if (sortOrder.endsWith("_desc")) sort = sort.descending();
+    public Page<Product> search(String text, int page, String sort, String order) {
+        List<String> allowedSorts = List.of("id", "stock", "price", "name");
+        if (!allowedSorts.contains(sort)) {
+            sort = "id"; // fallback
         }
-        return productRepo.searchProducts(text, PageRequest.of(page, 10, sort));
+
+        //Sort direction
+        Sort.Direction direction = order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sortObj = Sort.by(direction, sort);
+
+        return productRepo.searchProducts(text, PageRequest.of(page, 10, sortObj));
     }
 
     public Optional<Product> findById(int id) {

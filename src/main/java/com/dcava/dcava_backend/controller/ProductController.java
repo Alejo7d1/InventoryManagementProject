@@ -21,22 +21,25 @@ public class ProductController {
                 .orElse(ResponseEntity.status(404).body("Product not found"));
     }
 
-    // 🔹 Público: búsqueda con texto, orden y paginación
+    //Public: Search by text
     @GetMapping("/search")
     public ResponseEntity<Page<Product>> searchProducts(
             @RequestParam(defaultValue = "") String text,
-            @RequestParam(defaultValue = "stock_asc") String sortOrder,
-            @RequestParam(defaultValue = "0") int page) {
-        return ResponseEntity.ok(productService.search(text, page, sortOrder));
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        Page<Product> result = productService.search(text, page, sort, order);
+        return ResponseEntity.ok(result);
     }
 
-    // 🔹 Restringido: crear producto
+    //Restricted: Create Product
     @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody Product product) {
         return ResponseEntity.ok(productService.save(product));
     }
 
-    // 🔹 Restringido: actualizar producto
+    //Restricted: Update Product
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable int id, @RequestBody Product updated) {
         try {
@@ -46,7 +49,7 @@ public class ProductController {
         }
     }
 
-    // 🔹 Restringido: desactivar (borrado lógico)
+    //Restricted: delete product
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deactivateProduct(@PathVariable int id) {
         if (productService.deactivate(id)) {
@@ -55,7 +58,7 @@ public class ProductController {
         return ResponseEntity.status(404).body("Product not found");
     }
 
-    // 🔹 Restringido: actualizar stock
+    //Restricted: Update stock
     @PatchMapping("/{id}/stock")
     public ResponseEntity<?> updateStock(@PathVariable int id, @RequestParam int quantity) {
         if (productService.updateStock(id, quantity)) {

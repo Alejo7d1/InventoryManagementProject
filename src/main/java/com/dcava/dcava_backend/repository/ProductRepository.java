@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ProductRepository extends JpaRepository<Product, Integer> {
 
-    // Search for (nombre, descripción o compatibilidad)
+    // Search for (name, description or compatibility)
     @Query("SELECT p FROM Product p WHERE " +
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%')) OR " +

@@ -13,20 +13,18 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-        // Define aquí los endpoints públicos EXACTAMENTE según tu requerimiento
         List<String> publicPatterns = List.of(
-                // Productos públicos y búsquedas
-                "GET:/products/*",          // GET /products/{id}
-                "GET:/products",            // GET /products?search=...
-                "GET:/products/**",         // cubrir otros GET públicos
+                //Public endpoints
+                "GET:/products/*",          
+                "GET:/products",           
+                "GET:/products/**",         
                 "GET:/categories",
                 "GET:/categories/*/products",
-                "GET:/products/*/images",   // GET imágenes por producto (público)
+                "GET:/products/*/images",   
                 "GET:/advertisements/*",
-                "GET:/advertisements",      // GET /advertisements?active=
+                "GET:/advertisements",      
                 "GET:/products/deleted",
-                // subir archivos y otros recursos estáticos (public)
+                //upload resources (public)
                 "/uploads/**"
         );
 
@@ -34,14 +32,12 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {}) // configura CORS si necesitas
+                .cors(cors -> {}) 
                 .authorizeHttpRequests(auth -> auth
-                        // NOTA: los patterns públicos ya los maneja el filter; aquí se mantiene por claridad
                         .requestMatchers("/products/**", "/categories/**", "/advertisements/**", "/uploads/**").permitAll()
-                        // todo lo demás requiere auth
                         .anyRequest().authenticated()
                 )
-                // Añadir filtro que validará token SOLO para rutas no públicas
+                //public routes filter
                 .addFilterBefore(firebaseFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
