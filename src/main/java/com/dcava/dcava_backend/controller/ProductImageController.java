@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
+@RequestMapping("/products")
 public class ProductImageController {
 
     private final ProductImageService imageService;
@@ -20,14 +21,14 @@ public class ProductImageController {
     }
 
     //public: list all product images
-    @GetMapping("/products/{productId}/images")
+    @GetMapping("/{productId}/images")
     public List<ProductImageDTO> getProductImages(@PathVariable int productId) {
         List<ProductImage> images = imageService.getImagesByProduct(productId);
         return images.stream().map(ProductImageDTO::new).toList();
     }
 
     //restricted: upload imagen (form-data) -> productId and file
-    @PostMapping(value = "/products/images", consumes = "multipart/form-data")
+    @PostMapping(value = "/images", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadImage(@RequestParam("productId") Integer productId,
                                          @RequestParam("file") MultipartFile file) {
         try {
@@ -41,7 +42,7 @@ public class ProductImageController {
     }
 
     // restricted: delete by id
-    @DeleteMapping("/products/images/{imageId}")
+    @DeleteMapping("/images/{imageId}")
     public ResponseEntity<?> deleteImage(@PathVariable Integer imageId) {
         if (imageService.deleteImage(imageId)) {
             return ResponseEntity.ok("Image deleted");

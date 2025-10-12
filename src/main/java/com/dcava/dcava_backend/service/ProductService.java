@@ -56,7 +56,7 @@ public class ProductService {
 
     public boolean deactivate(int id) {
         return productRepo.findById(id).map(p -> {
-            p.setStatus("INACTIVE");
+            p.setStatus("inactive");
             productRepo.save(p);
             return true;
         }).orElse(false);

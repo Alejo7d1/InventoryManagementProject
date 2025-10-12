@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Search for (name, description or compatibility)
@@ -15,4 +17,12 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
             "LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))")
     Page<Product> searchProducts(String text, Pageable pageable);
+
+    //List of product in the category
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL AND p.category <> ''")
+    List<String> findDistinctCategories();
+
+    List<Product> findByCategoryIgnoreCase(String category);
+
+
 }
