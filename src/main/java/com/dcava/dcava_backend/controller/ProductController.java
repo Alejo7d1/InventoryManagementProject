@@ -13,7 +13,7 @@ public class ProductController {
     private final ProductService productService;
     public ProductController(ProductService productService) { this.productService = productService; }
 
-    // 🔹 Público: obtener producto por ID
+    // public: get product by id
     @GetMapping("/{id}")
     public ResponseEntity<?> getProductById(@PathVariable int id) {
         return productService.findById(id)
