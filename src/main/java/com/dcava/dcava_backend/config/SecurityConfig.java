@@ -20,9 +20,7 @@ public class SecurityConfig {
                 "GET:/products/**",         
                 "GET:/categories",
                 "GET:/categories/*/products",
-                "GET:/products/*/images",   
-                "GET:/advertisements/*",
-                "GET:/advertisements",      
+                "GET:/products/*/images",
                 "GET:/products/deleted",
                 //upload resources (public)
                 "/uploads/**"

@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -20,6 +21,7 @@ public class Product {
     @Column(nullable = false)
     private double price;
 
+    //@JsonIgnore
     @Column(nullable = false)
     private double cost;
 
