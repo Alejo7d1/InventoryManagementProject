@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -35,10 +36,18 @@ public class SaleService {
 
         for (SaleItemDTO dto : itemsDTO) {
             Product product = productRepository.findById(dto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + dto.getProductId()));
+                    .orElseThrow(() -> new RuntimeException("Product not found " + dto.getProductId()));
 
             if (product.getStock() < dto.getQuantity()) {
-                throw new RuntimeException("Stock insuficiente para el producto: " + product.getName());
+                throw new RuntimeException("insufficient stock " + product.getName());
+            }
+
+            if(dto.getQuantity() < 1){
+                throw new RuntimeException("insufficient quantity from" + product.getName());
+            }
+
+            if(Objects.equals(product.getStatus(), "inactive")) {
+                throw new RuntimeException("Product not found " + dto.getProductId());
             }
 
             // Discount stock
@@ -73,6 +82,10 @@ public class SaleService {
 
     public List<Sale> getByDateRange(LocalDateTime start, LocalDateTime end) {
         return saleRepository.findByDateRange(start, end);
+    }
+
+    public List<Sale> getByUserAndDateRange(Integer userId, LocalDateTime start, LocalDateTime end) {
+        return saleRepository.findByUserAndDateRange(userId,start,end);
     }
 }
 

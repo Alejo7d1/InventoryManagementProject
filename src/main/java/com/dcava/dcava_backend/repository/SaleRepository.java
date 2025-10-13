@@ -12,5 +12,11 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
 
     @Query("SELECT s FROM Sale s WHERE s.saleDate BETWEEN :start AND :end")
     List<Sale> findByDateRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :start AND :end")
+    List<Sale> findByUserAndDateRange(@Param("userId") Integer userId,
+                                      @Param("start") LocalDateTime start,
+                                      @Param("end") LocalDateTime end);
+
 }
 

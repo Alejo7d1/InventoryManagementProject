@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ProductImageService {
@@ -40,6 +41,15 @@ public class ProductImageService {
 
         String category = product.getCategory() != null ? product.getCategory() : "uncategorized";
 
+        //Format validate
+        if (!Objects.requireNonNull(file.getContentType()).startsWith("image/")) {
+            throw new IllegalArgumentException("Selected image is not an image");
+        }
+        //if product deleted
+        if(product.getStatus().equals("inactive")){
+            throw new IllegalArgumentException("This product is inactive");
+        }
+
         // Temp save in DB
         ProductImage image = new ProductImage();
         image.setProduct(product);
@@ -55,7 +65,7 @@ public class ProductImageService {
         }
 
         //Save image
-        String newFileName = "image_" + savedImage.getId() + "_product_" + productId + fileExtension;
+        String newFileName = "image_" + savedImage.getId() + "_product_" + productId + ".png";
 
         //Create directory
         Path uploadPath = Paths.get(baseUploadDir, category).toAbsolutePath().normalize();

@@ -1,6 +1,9 @@
 package com.dcava.dcava_backend.controller;
 
+import com.dcava.dcava_backend.dto.SaleDTO;
+import com.dcava.dcava_backend.model.Sale;
 import com.dcava.dcava_backend.model.UserAdmin;
+import com.dcava.dcava_backend.service.SaleService;
 import com.dcava.dcava_backend.service.UserAdminService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -10,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,9 +22,11 @@ import java.util.Map;
 public class UserAdminController {
 
     private final UserAdminService userService;
+    private final SaleService saleService;
 
-    public UserAdminController(UserAdminService userService) {
+    public UserAdminController(UserAdminService userService, SaleService saleService) {
         this.userService = userService;
+        this.saleService = saleService;
     }
 
     //POST /users/sync
@@ -46,7 +53,7 @@ public class UserAdminController {
         }
     }
 
-    //GET /users/me
+    //GET register user
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -57,6 +64,18 @@ public class UserAdminController {
         return userService.findByUid(uid)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
+    }
+
+    //GET sales by user
+    @GetMapping("/{userId}/sales")
+    public ResponseEntity<List<SaleDTO>> getUserSales(
+            @PathVariable Integer userId,
+            @RequestParam("start_date") LocalDateTime start,
+            @RequestParam("end_date") LocalDateTime end) {
+
+        List<Sale> sales = saleService.getByUserAndDateRange(userId,start,end);
+        List<SaleDTO> dtos = sales.stream().map(SaleDTO::new).toList();
+        return ResponseEntity.ok(dtos);
     }
 }
 
