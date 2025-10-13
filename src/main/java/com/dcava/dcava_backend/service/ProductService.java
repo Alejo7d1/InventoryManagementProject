@@ -47,7 +47,6 @@ public class ProductService {
             p.setPrice(updated.getPrice());
             p.setCost(updated.getCost());
             p.setStock(updated.getStock());
-            p.setImage(updated.getImage());
             p.setCompatibility(updated.getCompatibility());
             p.setCategory(updated.getCategory());
             return productRepo.save(p);

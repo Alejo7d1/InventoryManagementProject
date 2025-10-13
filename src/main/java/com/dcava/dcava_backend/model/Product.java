@@ -23,9 +23,6 @@ public class Product {
     @Column(nullable = false)
     private double cost;
 
-    @Column
-    private String image;
-
     @Column(length = 64)
     private String category;
 
@@ -57,9 +54,6 @@ public class Product {
 
     public double getCost() { return cost; }
     public void setCost(double cost) { this.cost = cost; }
-
-    public String getImage() { return image; }
-    public void setImage(String image) { this.image = image; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }

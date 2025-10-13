@@ -28,37 +28,49 @@ public class ProductImageService {
         this.productRepository = productRepository;
     }
 
-    // 🔹 Obtener imágenes por producto
+    //Get images by product
     public List<ProductImage> getImagesByProduct(Integer productId) {
         return imageRepository.findByProductId(productId);
     }
 
-    // 🔹 Guardar imagen en disco y base de datos
+    //Save image
     public ProductImage saveImage(Integer productId, MultipartFile file) throws IOException {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         String category = product.getCategory() != null ? product.getCategory() : "uncategorized";
-        String fileName = productId + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
 
-        // 🧱 Crear directorio si no existe
+        // Temp save in DB
+        ProductImage image = new ProductImage();
+        image.setProduct(product);
+        image.setFileName("temp");
+        image.setFilePath("temp");
+
+        ProductImage savedImage = imageRepository.save(image);
+
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        //Save image
+        String newFileName = "image_" + savedImage.getId() + "_product_" + productId + fileExtension;
+
+        //Create directory
         Path uploadPath = Paths.get(baseUploadDir, category).toAbsolutePath().normalize();
         Files.createDirectories(uploadPath);
 
-        // 📁 Guardar archivo
-        Path filePath = uploadPath.resolve(fileName);
+        //Save file with new name
+        Path filePath = uploadPath.resolve(newFileName);
         file.transferTo(filePath.toFile());
+        savedImage.setFileName(newFileName);
+        savedImage.setFilePath("/uploads/" + category + "/" + newFileName);
 
-        // 🧾 Guardar en BD
-        ProductImage image = new ProductImage();
-        image.setProduct(product);
-        image.setFileName(fileName);
-        image.setFilePath("/uploads/" + category + "/" + fileName);
-
-        return imageRepository.save(image);
+        return imageRepository.save(savedImage);
     }
 
-    // 🔹 Eliminar imagen física y de BD
+    //Delete image
     public boolean deleteImage(Integer imageId) {
         return imageRepository.findById(imageId).map(image -> {
             try {
