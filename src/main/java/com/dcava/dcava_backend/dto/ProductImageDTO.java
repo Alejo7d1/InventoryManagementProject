@@ -1,4 +1,4 @@
-package com.dcava.dcava_backend.DTO;
+package com.dcava.dcava_backend.dto;
 
 import com.dcava.dcava_backend.model.ProductImage;
 

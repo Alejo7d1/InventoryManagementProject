@@ -25,4 +25,5 @@ public class UserAdminService {
         return userRepo.findByUidFirebase(uid)
                 .orElseGet(() -> userRepo.save(new UserAdmin(name, email, uid)));
     }
+
 }
