@@ -5,6 +5,7 @@ import com.dcava.dcava_backend.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -67,6 +68,10 @@ public class ProductService {
             productRepo.save(p);
             return true;
         }).orElse(false);
+    }
+
+    public List<Product> getAllProductsDesactivated() {
+        return productRepo.findDeletedProducts();
     }
 }
 

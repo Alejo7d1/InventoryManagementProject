@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/admin/products")
-public class PrivateProductController {
+public class ProductAdminController {
 
     private final ProductService productService;
-    public PrivateProductController(ProductService productService) { this.productService = productService; }
+    public ProductAdminController(ProductService productService) { this.productService = productService; }
 
-    //Get product by id
+    //Get product by id (with cost)
     @GetMapping("/{id}")
     public ResponseEntity<?> privateGetProductById(@PathVariable int id) {
         return productService.findById(id)

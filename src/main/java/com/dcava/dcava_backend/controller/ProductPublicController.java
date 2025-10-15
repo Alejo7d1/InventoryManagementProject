@@ -7,12 +7,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/products")
-public class PublicProductController {
+public class ProductPublicController {
 
     private final ProductService productService;
-    public PublicProductController(ProductService productService) { this.productService = productService; }
+    public ProductPublicController(ProductService productService) { this.productService = productService; }
 
 
     //Get product by id
@@ -25,7 +29,7 @@ public class PublicProductController {
 
     //Search by text
     @GetMapping("/search")
-    public ResponseEntity<Page<ProductPublicDTO>> searchProducts(
+    public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(defaultValue = "") String text,
             @RequestParam(defaultValue = "id") String sort,
             @RequestParam(defaultValue = "asc") String order,
@@ -33,7 +37,21 @@ public class PublicProductController {
     ) {
         Page<Product> result = productService.search(text, page, sort, order);
         Page<ProductPublicDTO> dtoPage = result.map(ProductPublicDTO::new);
-        return ResponseEntity.ok(dtoPage);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", dtoPage.getContent());
+        response.put("currentPage", dtoPage.getNumber());
+        response.put("totalItems", dtoPage.getTotalElements());
+        response.put("totalPages", dtoPage.getTotalPages());
+        response.put("size", dtoPage.getSize());
+
+        return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/deleted")
+    public ResponseEntity<List<Product>> getDeletedProducts() {
+        return ResponseEntity.ok(productService.getAllProductsDesactivated());
+    }
+
 }
 
