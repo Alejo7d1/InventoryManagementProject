@@ -4,8 +4,8 @@ import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +32,14 @@ public class ProductService {
 
         return productRepo.searchProducts(text, PageRequest.of(page, 10, sortObj));
     }
+
+    public Page<Product> adminSearch(String text, int page, String status) {
+        Pageable pageable = PageRequest.of(page, 10, Sort.by("id").ascending());
+        String normalizedStatus = (status == null || status.isBlank()) ? null : status.toLowerCase();
+        return productRepo.searchAdminProducts(text, normalizedStatus, pageable);
+    }
+
+
 
     public Optional<Product> findById(int id) {
         return productRepo.findById(id);

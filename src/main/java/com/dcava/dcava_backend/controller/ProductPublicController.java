@@ -48,10 +48,6 @@ public class ProductPublicController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/deleted")
-    public ResponseEntity<List<Product>> getDeletedProducts() {
-        return ResponseEntity.ok(productService.getAllProductsDesactivated());
-    }
 
 }
 

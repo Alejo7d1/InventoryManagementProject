@@ -1,10 +1,16 @@
 package com.dcava.dcava_backend.controller;
 
 import com.dcava.dcava_backend.dto.ProductAdminDTO;
+import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.service.ProductService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/products")
@@ -20,6 +26,32 @@ public class ProductAdminController {
                 .<ResponseEntity<?>>map(product -> ResponseEntity.ok(new ProductAdminDTO(product)))
                 .orElse(ResponseEntity.status(404).body("Product not found"));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> searchProducts(
+            @RequestParam(defaultValue = "") String text,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        Page<Product> result = productService.adminSearch(text, page, status);
+        Page<ProductAdminDTO> dtoPage = result.map(ProductAdminDTO::new);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", dtoPage.getContent());
+        response.put("currentPage", dtoPage.getNumber());
+        response.put("totalItems", dtoPage.getTotalElements());
+        response.put("totalPages", dtoPage.getTotalPages());
+        response.put("size", dtoPage.getSize());
+
+        return ResponseEntity.ok(response);
+    }
+
+    //get deleted products
+    @GetMapping("/deleted")
+    public ResponseEntity<List<Product>> getDeletedProducts() {
+        return ResponseEntity.ok(productService.getAllProductsDesactivated());
+    }
+
 
     //Create Product
     @PostMapping
@@ -46,7 +78,7 @@ public class ProductAdminController {
         return ResponseEntity.status(404).body("Product not found");
     }
 
-    //Restricted: Update stock
+    //Update stock
     @PatchMapping("/{id}/stock")
     public ResponseEntity<?> updateStock(@PathVariable int id, @RequestParam int quantity) {
         if (productService.updateStock(id, quantity)) {
@@ -54,4 +86,6 @@ public class ProductAdminController {
         }
         return ResponseEntity.status(404).body("Product not found");
     }
+
+
 }
