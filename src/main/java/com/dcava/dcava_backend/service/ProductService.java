@@ -1,13 +1,18 @@
 package com.dcava.dcava_backend.service;
 
 import com.dcava.dcava_backend.model.Product;
+import com.dcava.dcava_backend.model.ProductImage;
+import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,9 +20,11 @@ import java.util.Optional;
 public class ProductService {
 
     private final ProductRepository productRepo;
+    private final ProductImageService imageService;
 
-    public ProductService(ProductRepository productRepo) {
+    public ProductService(ProductRepository productRepo, ProductImageService imageService) {
         this.productRepo = productRepo;
+        this.imageService = imageService;
     }
 
     public Page<Product> search(String text, int page, String sort, String order) {
@@ -34,7 +41,7 @@ public class ProductService {
     }
 
     public Page<Product> adminSearch(String text, int page, String status) {
-        Pageable pageable = PageRequest.of(page, 10, Sort.by("id").ascending());
+        Pageable pageable = PageRequest.of(page, 20, Sort.by("id").ascending());
         String normalizedStatus = (status == null || status.isBlank()) ? null : status.toLowerCase();
         return productRepo.searchAdminProducts(text, normalizedStatus, pageable);
     }
@@ -45,8 +52,19 @@ public class ProductService {
         return productRepo.findById(id);
     }
 
-    public Product save(Product product) {
-        return productRepo.save(product);
+    @Transactional
+    public Product save(Product product, List<MultipartFile> images) throws IOException {
+        Product savedProduct = productRepo.save(product);
+
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                imageService.saveImage(savedProduct.getId(), file);
+            }
+        } else {
+            imageService.saveGenericImage(savedProduct.getId());
+        }
+
+        return savedProduct;
     }
 
     public Product update(int id, Product updated) {

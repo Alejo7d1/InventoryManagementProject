@@ -6,6 +6,7 @@ import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class ProductImageService {
 
         //Format validate
         if (!Objects.requireNonNull(file.getContentType()).startsWith("image/")) {
-            throw new IllegalArgumentException("Selected image is not an image");
+            throw new IllegalArgumentException("Selected file is not an image");
         }
         //if product deleted
         if(product.getStatus().equals("inactive")){
@@ -79,6 +80,21 @@ public class ProductImageService {
 
         return imageRepository.save(savedImage);
     }
+
+    //Generic image
+    @Transactional
+    public ProductImage saveGenericImage(Integer productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        ProductImage image = new ProductImage();
+        image.setProduct(product);
+        image.setFileName("default.png");
+        image.setFilePath("/uploads/default/default.png");
+
+        return imageRepository.save(image);
+    }
+
 
     //Delete image
     public boolean deleteImage(Integer imageId) {

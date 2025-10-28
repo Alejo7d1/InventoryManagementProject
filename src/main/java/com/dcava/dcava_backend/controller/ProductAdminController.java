@@ -5,9 +5,12 @@ import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.service.ProductService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +56,22 @@ public class ProductAdminController {
     }
 
 
-    //Create Product
-    @PostMapping
-    public ResponseEntity<?> createProduct(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.save(product));
+    //add product
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createProduct(
+            @RequestPart("product") Product product,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        try {
+            Product savedProduct = productService.save(product, images);
+            return ResponseEntity.ok(savedProduct);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Error saving images: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
     }
+
 
     //Update Product
     @PutMapping("/{id}")
