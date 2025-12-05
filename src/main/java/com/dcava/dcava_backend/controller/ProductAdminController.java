@@ -1,8 +1,8 @@
 package com.dcava.dcava_backend.controller;
 
 import com.dcava.dcava_backend.dto.ProductAdminDTO;
-import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
+import com.dcava.dcava_backend.service.ProductImageService;
 import com.dcava.dcava_backend.service.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
@@ -20,7 +20,11 @@ import java.util.Map;
 public class ProductAdminController {
 
     private final ProductService productService;
-    public ProductAdminController(ProductService productService) { this.productService = productService; }
+    private final ProductImageService productImageService;
+
+    public ProductAdminController(ProductService productService, ProductImageService productImageService) { this.productService = productService;
+        this.productImageService = productImageService;
+    }
 
     //Get product by id (with cost)
     @GetMapping("/{id}")
@@ -52,7 +56,7 @@ public class ProductAdminController {
     //get deleted products
     @GetMapping("/deleted")
     public ResponseEntity<List<Product>> getDeletedProducts() {
-        return ResponseEntity.ok(productService.getAllProductsDesactivated());
+        return ResponseEntity.ok(productService.getAllProductsDeactivated());
     }
 
 
@@ -64,6 +68,9 @@ public class ProductAdminController {
     ) {
         try {
             Product savedProduct = productService.save(product, images);
+            if (images == null || images.isEmpty()) {
+                productImageService.saveGenericImage(savedProduct.getId());
+            }
             return ResponseEntity.ok(savedProduct);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Error saving images: " + e.getMessage());
@@ -88,6 +95,15 @@ public class ProductAdminController {
     public ResponseEntity<?> deactivateProduct(@PathVariable int id) {
         if (productService.deactivate(id)) {
             return ResponseEntity.ok("Product deactivated");
+        }
+        return ResponseEntity.status(404).body("Product not found");
+    }
+
+    //Restore product
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreProduct(@PathVariable int id) {
+        if (productService.restore(id)){
+            return ResponseEntity.ok("Product restored");
         }
         return ResponseEntity.status(404).body("Product not found");
     }

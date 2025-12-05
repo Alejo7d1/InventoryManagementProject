@@ -83,30 +83,53 @@ public class ProductImageService {
 
     //Generic image
     @Transactional
-    public ProductImage saveGenericImage(Integer productId) {
+    public void saveGenericImage(Integer productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
+        // already case
+        List<ProductImage> existingImages = imageRepository.findByProductId(productId);
+
+        for (ProductImage img : existingImages) {
+            if ("/uploads/default.png".equals(img.getFilePath())) {
+                return;
+            }
+        }
+
+        // Create a register
         ProductImage image = new ProductImage();
         image.setProduct(product);
         image.setFileName("default.png");
-        image.setFilePath("/uploads/default/default.png");
+        image.setFilePath("/uploads/default.png");
 
-        return imageRepository.save(image);
+        imageRepository.save(image);
     }
 
 
     //Delete image
     public boolean deleteImage(Integer imageId) {
+
         return imageRepository.findById(imageId).map(image -> {
+
+            // Default image cannot be eliminated
+            if ("default.png".equals(image.getFileName())) {
+                imageRepository.delete(image);
+                return true;
+            }
+
+            // file
             try {
                 Path filePath = Paths.get("." + image.getFilePath()).toAbsolutePath();
                 Files.deleteIfExists(filePath);
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                throw new RuntimeException("Error deleting image file: " + e.getMessage());
+            }
 
+            //delete in DB
             imageRepository.delete(image);
             return true;
-        }).orElse(false);
+
+        }).orElseThrow(() -> new RuntimeException("Image not found"));
     }
 }
 

@@ -21,10 +21,12 @@ public class ProductService {
 
     private final ProductRepository productRepo;
     private final ProductImageService imageService;
+    private final ProductImageRepository productImageRepository;
 
-    public ProductService(ProductRepository productRepo, ProductImageService imageService) {
+    public ProductService(ProductRepository productRepo, ProductImageService imageService, ProductImageRepository productImageRepository) {
         this.productRepo = productRepo;
         this.imageService = imageService;
+        this.productImageRepository = productImageRepository;
     }
 
     public Page<Product> search(String text, int page, String sort, String order) {
@@ -76,14 +78,40 @@ public class ProductService {
             p.setStock(updated.getStock());
             p.setCompatibility(updated.getCompatibility());
             p.setCategory(updated.getCategory());
+
             return productRepo.save(p);
         }).orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
-    public boolean deactivate(int id) {
+    public boolean restore(int id) {
         return productRepo.findById(id).map(p -> {
-            p.setStatus("inactive");
+            p.setStatus("active");
             productRepo.save(p);
+            return true;
+        }).orElse(false);
+    }
+
+    //delete product
+    @Transactional
+    public boolean deactivate(int id) {
+        return productRepo.findById(id).map(product -> {
+
+            // Get all product images
+            List<ProductImage> images = productImageRepository.findByProductId(id);
+
+            // Remove all non-default images
+            for (ProductImage img : images) {
+                if (!"default.png".equals(img.getFileName())) {
+                    imageService.deleteImage(img.getId());
+                }
+            }
+            boolean hasDefault = productImageRepository.findByProductId(id).stream()
+                    .anyMatch(img -> "default.png".equals(img.getFileName()));
+
+            if (!hasDefault) imageService.saveGenericImage(product.getId());
+
+            product.setStatus("inactive");
+            productRepo.save(product);
             return true;
         }).orElse(false);
     }
@@ -96,7 +124,7 @@ public class ProductService {
         }).orElse(false);
     }
 
-    public List<Product> getAllProductsDesactivated() {
+    public List<Product> getAllProductsDeactivated() {
         return productRepo.findDeletedProducts();
     }
 }
