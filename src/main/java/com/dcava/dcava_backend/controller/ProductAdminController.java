@@ -38,9 +38,11 @@ public class ProductAdminController {
     public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(defaultValue = "") String text,
             @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "int") String sort,
+            @RequestParam(defaultValue = "asc") String order
     ) {
-        Page<Product> result = productService.adminSearch(text, page, status);
+        Page<Product> result = productService.adminSearch(text, page, status, sort, order);
         Page<ProductAdminDTO> dtoPage = result.map(ProductAdminDTO::new);
 
         Map<String, Object> response = new HashMap<>();
@@ -57,6 +59,14 @@ public class ProductAdminController {
     @GetMapping("/deleted")
     public ResponseEntity<List<Product>> getDeletedProducts() {
         return ResponseEntity.ok(productService.getAllProductsDeactivated());
+    }
+
+    @GetMapping("/low-stock")
+    public ResponseEntity<Page<Product>> getLowStockProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5", name = "stockThreshold") int threshold
+    ) {
+        return  ResponseEntity.ok(productService.getLowStockProducts(page, threshold));
     }
 
 

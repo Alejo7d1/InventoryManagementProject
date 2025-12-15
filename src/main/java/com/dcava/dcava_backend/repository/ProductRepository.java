@@ -29,7 +29,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
                                       @Param("status") String status,
                                       Pageable pageable);
 
-
     //List of product in the category
     @Query("SELECT DISTINCT p.category FROM Product p " + "WHERE p.status = 'active' AND p.category IS NOT NULL AND p.category <> ''")
     List<String> findDistinctCategories();
@@ -39,4 +38,12 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("SELECT p FROM Product p WHERE p.status = 'inactive'")
     List<Product> findDeletedProducts();
+
+    //Show low stock
+    @Query("""
+        SELECT p FROM Product p WHERE p.stock <= :threshold AND p.status = 'active' ORDER BY p.stock ASC""")
+    Page<Product> findLowStockProducts(
+        @Param("threshold") int threshold,
+        Pageable pageable
+    );
 }

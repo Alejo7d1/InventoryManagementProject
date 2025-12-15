@@ -18,6 +18,7 @@ import java.util.Optional;
 
 @Service
 public class ProductService {
+    int pageSize = 20;
 
     private final ProductRepository productRepo;
     private final ProductImageService imageService;
@@ -34,24 +35,39 @@ public class ProductService {
         if (!allowedSorts.contains(sort)) {
             sort = "id"; // fallback
         }
-
         //Sort direction
         Sort.Direction direction = order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
         Sort sortObj = Sort.by(direction, sort);
 
-        return productRepo.searchProducts(text, PageRequest.of(page, 10, sortObj));
+        return productRepo.searchProducts(text, PageRequest.of(page, pageSize, sortObj));
     }
 
-    public Page<Product> adminSearch(String text, int page, String status) {
-        Pageable pageable = PageRequest.of(page, 20, Sort.by("id").ascending());
-        String normalizedStatus = (status == null || status.isBlank()) ? null : status.toLowerCase();
+    public Page<Product> adminSearch(String text, int page, String status, String sort, String order) {
+        List<String> allowedSorts = List.of("id", "stock", "price", "name", "createdAt");
+        if (!allowedSorts.contains(sort)) {
+            sort = "id";
+        }
+
+        Sort.Direction direction =
+                order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(
+                page,
+                pageSize,
+                Sort.by(direction, sort)
+        );
+        String normalizedStatus =
+                (status == null || status.isBlank()) ? null : status.toLowerCase();
         return productRepo.searchAdminProducts(text, normalizedStatus, pageable);
     }
 
-
-
     public Optional<Product> findById(int id) {
         return productRepo.findById(id);
+    }
+
+    public Page<Product> getLowStockProducts(int page, int threshold) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return productRepo.findLowStockProducts(threshold, pageable);
     }
 
     @Transactional
