@@ -18,5 +18,22 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
                                       @Param("start") LocalDateTime start,
                                       @Param("end") LocalDateTime end);
 
+    //Top 10 sales
+    @Query(
+            value = """
+        SELECT si.product_id
+        FROM sale_items si
+        JOIN sale s ON s.id = si.sale_id
+        WHERE s.sale_date >= DATE_SUB(NOW(), INTERVAL :months MONTH)
+        GROUP BY si.product_id
+        ORDER BY SUM(si.quantity) DESC
+        LIMIT 10
+        """,
+            nativeQuery = true
+    )
+    List<Integer> findTop10SellingProductIdsLastMonths(@Param("months") int months);
+
+
+
 }
 

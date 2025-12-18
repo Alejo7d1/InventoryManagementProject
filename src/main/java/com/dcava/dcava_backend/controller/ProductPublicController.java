@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -46,5 +47,14 @@ public class ProductPublicController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/top-selling")
+    public ResponseEntity<List<ProductPublicDTO>> getTopSellingProducts(
+            @RequestParam(defaultValue = "1") int months
+    ) {
+        return ResponseEntity.ok(productService.getTopSellingProducts(months));
+    }
+
+
 }
 

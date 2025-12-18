@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.controller;
 
+import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.service.CategoryService;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class CategoryController {
     }
 
     @GetMapping("/{name}/products")
-    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String name) {
+    public ResponseEntity<List<ProductPublicDTO>> getProductsByCategory(@PathVariable String name) {
         return ResponseEntity.ok(categoryService.getProductsByCategory(name));
     }
 }

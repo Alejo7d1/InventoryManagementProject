@@ -7,7 +7,6 @@ import com.dcava.dcava_backend.model.UserAdmin;
 
 import com.dcava.dcava_backend.service.SaleService;
 import com.dcava.dcava_backend.service.UserAdminService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,7 +25,6 @@ public class SaleController {
     private final SaleService saleService;
     private final UserAdminService userAdminService;
 
-    @Autowired
     public SaleController(SaleService saleService, UserAdminService userAdminService) {
         this.saleService = saleService;
         this.userAdminService = userAdminService;

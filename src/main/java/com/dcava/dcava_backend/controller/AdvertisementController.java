@@ -52,17 +52,17 @@ public class AdvertisementController {
 
         types.put("BANNER", Map.of(
                 "description", "Top banner",
-                "dimensions", "1024px minimum width x 200-300px height",
+                "dimensions", "1024px minimum width x 200-800px height",
                 "aspectRatio", "~4:1"
         ));
         types.put("SIDEBAR", Map.of(
                 "description", "Side ad",
-                "dimensions", "300px width x 250-600px height",
+                "dimensions", "1200px width x 1000-3000px height",
                 "aspectRatio", "~1:2"
         ));
         types.put("SQUARE", Map.of(
                 "description", "Square ad",
-                "dimensions", "300-400px x 300-400px",
+                "dimensions", "600-2000px x 600-2000px",
                 "aspectRatio", "1:1"
         ));
         types.put("POPUP", Map.of(
@@ -101,8 +101,8 @@ public class AdvertisementController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Validate max size (máx 5MB)
-            if (file.getSize() > 5 * 1024 * 1024) {
+            // Validate max size (max 8MB)
+            if (file.getSize() > 8 * 1024 * 1024) {
                 response.put("success", false);
                 response.put("message", "The file must not exceed 5MB");
                 return ResponseEntity.badRequest().body(response);

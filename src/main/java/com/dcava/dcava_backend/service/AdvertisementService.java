@@ -103,18 +103,18 @@ public class AdvertisementService {
                 }
                 if (height < 200 || height > 800) {
                     throw new IllegalArgumentException(
-                            "The sidebar must be exactly 300px wide. Actual: " + height + "px"
+                            "The banner should be between 200-800px high. Actual high. Actual: " + height + "px"
                     );
                 }
                 break;
 
             case SIDEBAR:
-                if (width != 300) {
+                if (width != 1200) {
                     throw new IllegalArgumentException(
-                            "The sidebar must be exactly 300px wide. Actual: " + width + "px"
+                            "The sidebar must be exactly 1200px wide. Actual: " + width + "px"
                     );
                 }
-                if (height < 250 || height > 600) {
+                if (height < 1000 || height > 3000) {
                     throw new IllegalArgumentException(
                             "The sidebar should be between 250-600px high. Actual: " + height + "px"
                     );

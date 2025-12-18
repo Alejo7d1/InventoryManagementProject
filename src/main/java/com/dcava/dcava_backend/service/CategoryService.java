@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.service;
 
+import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,11 @@ public class CategoryService {
         return productRepo.findDistinctCategories();
     }
 
-    public List<Product> getProductsByCategory(String category) {
-        return productRepo.findByCategoryIgnoreCase(category);
+    public List<ProductPublicDTO> getProductsByCategory(String category) {
+        return productRepo.findByCategoryIgnoreCase(category)
+                .stream()
+                .map(ProductPublicDTO::new)
+                .toList();
     }
 }
+

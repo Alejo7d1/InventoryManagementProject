@@ -1,9 +1,11 @@
 package com.dcava.dcava_backend.service;
 
+import com.dcava.dcava_backend.dto.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
+import com.dcava.dcava_backend.repository.SaleRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,20 +16,28 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 
 @Service
 public class ProductService {
+    private final SaleRepository saleRepository;
+    private final ProductRepository productRepository;
     int pageSize = 20;
 
     private final ProductRepository productRepo;
     private final ProductImageService imageService;
     private final ProductImageRepository productImageRepository;
 
-    public ProductService(ProductRepository productRepo, ProductImageService imageService, ProductImageRepository productImageRepository) {
+    public ProductService(ProductRepository productRepo, ProductImageService imageService, ProductImageRepository productImageRepository, SaleRepository saleRepository, ProductRepository productRepository) {
         this.productRepo = productRepo;
         this.imageService = imageService;
         this.productImageRepository = productImageRepository;
+        this.saleRepository = saleRepository;
+        this.productRepository = productRepository;
     }
 
     public Page<Product> search(String text, int page, String sort, String order) {
@@ -106,6 +116,28 @@ public class ProductService {
             return true;
         }).orElse(false);
     }
+
+    public List<ProductPublicDTO> getTopSellingProducts(int months) {
+
+        List<Integer> productIds =
+                saleRepository.findTop10SellingProductIdsLastMonths(months);
+
+        if (productIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Product> products = productRepository.findAllById(productIds);
+
+        Map<Integer, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        return productIds.stream() // mantiene el orden del ranking
+                .map(productMap::get)
+                .filter(Objects::nonNull)
+                .map(ProductPublicDTO::new)
+                .toList();
+    }
+
 
     //delete product
     @Transactional
