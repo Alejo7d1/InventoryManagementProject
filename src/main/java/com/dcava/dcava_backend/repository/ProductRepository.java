@@ -13,11 +13,21 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Search for (name, description or compatibility)
-    @Query("SELECT p FROM Product p WHERE p.status = 'active' AND (" +
-            "LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
-            "LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
-            "LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%')))")
-    Page<Product> searchProducts(@Param("text") String text, Pageable pageable);
+    @Query("""
+SELECT p FROM Product p
+    WHERE p.status = 'active'
+      AND (
+        LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%'))
+        OR LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%'))
+        OR LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))
+      )
+      AND (:category IS NULL OR LOWER(p.category) = LOWER(:category))
+""")
+    Page<Product> searchProducts(
+            @Param("text") String text,
+            @Param("category") String category,
+            Pageable pageable
+    );
 
     //List all
     @Query("SELECT p FROM Product p WHERE " +

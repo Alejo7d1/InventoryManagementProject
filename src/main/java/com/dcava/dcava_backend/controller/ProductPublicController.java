@@ -31,11 +31,14 @@ public class ProductPublicController {
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(defaultValue = "") String text,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "id") String sort,
             @RequestParam(defaultValue = "asc") String order,
             @RequestParam(defaultValue = "0") int page
     ) {
-        Page<Product> result = productService.search(text, page, sort, order);
+        Page<Product> result =
+                productService.search(text, category, page, sort, order);
+
         Page<ProductPublicDTO> dtoPage = result.map(ProductPublicDTO::new);
 
         Map<String, Object> response = new HashMap<>();
@@ -47,6 +50,7 @@ public class ProductPublicController {
 
         return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/top-selling")
     public ResponseEntity<List<ProductPublicDTO>> getTopSellingProducts(

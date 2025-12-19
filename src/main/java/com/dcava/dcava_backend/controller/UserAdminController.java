@@ -2,12 +2,8 @@ package com.dcava.dcava_backend.controller;
 
 import com.dcava.dcava_backend.dto.SaleDTO;
 import com.dcava.dcava_backend.model.Sale;
-import com.dcava.dcava_backend.model.UserAdmin;
 import com.dcava.dcava_backend.service.SaleService;
 import com.dcava.dcava_backend.service.UserAdminService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseToken;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -27,30 +22,6 @@ public class UserAdminController {
     public UserAdminController(UserAdminService userService, SaleService saleService) {
         this.userService = userService;
         this.saleService = saleService;
-    }
-
-    //POST /users/sync
-    @PostMapping("/sync")
-    public ResponseEntity<?> syncUser(@RequestHeader("Authorization") String authHeader,
-                                      @RequestBody Map<String, String> body) {
-        try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-            }
-
-            String token = authHeader.substring(7);
-            FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(token);
-
-            String uid = decoded.getUid();
-            String name = body.getOrDefault("name", decoded.getName());
-            String email = body.getOrDefault("email", decoded.getEmail());
-
-            UserAdmin user = userService.registerIfNotExists(uid, name, email);
-            return ResponseEntity.ok(user);
-
-        } catch (FirebaseAuthException e) {
-            return ResponseEntity.status(401).body("Invalid Firebase token");
-        }
     }
 
     //GET register user

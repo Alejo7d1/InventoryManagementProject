@@ -15,15 +15,12 @@ public class UserAdminService {
         this.userRepo = userRepo;
     }
 
-    // search user by id
     public Optional<UserAdmin> findByUid(String uid) {
         return userRepo.findByUidFirebase(uid);
     }
 
-    // Create user if it doesn't exist
-    public UserAdmin registerIfNotExists(String uid, String name, String email) {
-        return userRepo.findByUidFirebase(uid)
-                .orElseGet(() -> userRepo.save(new UserAdmin(name, email, uid)));
+    public boolean existsByUid(String uid) {
+        return userRepo.existsByUidFirebase(uid);
     }
 
 }

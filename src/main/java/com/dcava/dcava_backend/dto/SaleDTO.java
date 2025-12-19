@@ -9,7 +9,7 @@ public class SaleDTO {
     private Integer id;
     private LocalDateTime saleDate;
     private double total;
-    private UserSummaryDTO user;
+    private UserAdminDTO user;
     private List<SaleItemDTO> items;
 
     public SaleDTO(Sale sale) {
@@ -17,7 +17,7 @@ public class SaleDTO {
         this.saleDate = sale.getSaleDate();
         this.total = sale.getTotal();
         if (sale.getUser() != null) {
-            this.user = new UserSummaryDTO(sale.getUser());
+            this.user = new UserAdminDTO(sale.getUser());
         }
         this.items = sale.getItems().stream()
                 .map(SaleItemDTO::new)
@@ -49,11 +49,11 @@ public class SaleDTO {
         this.total = total;
     }
 
-    public UserSummaryDTO getUser() {
+    public UserAdminDTO getUser() {
         return user;
     }
 
-    public void setUser(UserSummaryDTO user) {
+    public void setUser(UserAdminDTO user) {
         this.user = user;
     }
 

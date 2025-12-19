@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface UserAdminRepository extends JpaRepository<UserAdmin, Integer> {
     Optional<UserAdmin> findByUidFirebase(String uidFirebase);
+    boolean existsByUidFirebase(String uidFirebase);
 }

@@ -40,17 +40,30 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public Page<Product> search(String text, int page, String sort, String order) {
+    public Page<Product> search(
+            String text,
+            String category,
+            int page,
+            String sort,
+            String order
+    ) {
         List<String> allowedSorts = List.of("id", "stock", "price", "name");
         if (!allowedSorts.contains(sort)) {
-            sort = "id"; // fallback
+            sort = "id";
         }
-        //Sort direction
-        Sort.Direction direction = order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Sort.Direction direction =
+                order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
         Sort sortObj = Sort.by(direction, sort);
 
-        return productRepo.searchProducts(text, PageRequest.of(page, pageSize, sortObj));
+        return productRepo.searchProducts(
+                text,
+                category == null || category.isBlank() ? null : category,
+                PageRequest.of(page, pageSize, sortObj)
+        );
     }
+
 
     public Page<Product> adminSearch(String text, int page, String status, String sort, String order) {
         List<String> allowedSorts = List.of("id", "stock", "price", "name", "createdAt");

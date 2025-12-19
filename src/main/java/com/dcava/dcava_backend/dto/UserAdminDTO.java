@@ -2,12 +2,12 @@ package com.dcava.dcava_backend.dto;
 
 import com.dcava.dcava_backend.model.UserAdmin;
 
-public class UserSummaryDTO {
+public class UserAdminDTO {
     private Integer id;
     private String name;
     private String email;
 
-    public UserSummaryDTO(UserAdmin user) {
+    public UserAdminDTO(UserAdmin user) {
         this.id = user.getId();
         this.name = user.getName();
         this.email = user.getEmail();
