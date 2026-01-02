@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.controller;
 
+import com.dcava.dcava_backend.dto.CreateSaleDTO;
 import com.dcava.dcava_backend.dto.SaleDTO;
 import com.dcava.dcava_backend.model.Sale;
 import com.dcava.dcava_backend.model.SaleItem;
@@ -35,7 +36,7 @@ public class SaleController {
     public ResponseEntity<?> getSale(@PathVariable Integer id) {
         return saleService.getById(id)
                 .<ResponseEntity<?>>map(sale -> ResponseEntity.ok(new SaleDTO(sale)))
-                .orElse(ResponseEntity.status(404).body("Venta no encontrada"));
+                .orElse(ResponseEntity.status(404).body("Sale not found"));
     }
 
     //Get sales by range
@@ -49,40 +50,48 @@ public class SaleController {
 
         double totalSales = 0;
         double totalCost = 0;
-        double totalProfit = 0;
+        double totalSubtotal = 0;
+        double totalDiscount = 0;
 
         for (Sale sale : sales) {
             totalSales += sale.getTotal();
+            totalSubtotal += sale.getSubtotal();
+            totalDiscount += sale.getDiscount();
+
             for (SaleItem item : sale.getItems()) {
                 totalCost += item.getUnitCost() * item.getQuantity();
-                totalProfit += item.getProfit();
             }
         }
+
+        double totalProfit = totalSales - totalCost;
 
         Map<String, Object> response = new HashMap<>();
         response.put("sales", dtos);
         response.put("totalSales", totalSales);
+        response.put("totalSubtotal", totalSubtotal);
+        response.put("totalDiscount", totalDiscount);
         response.put("totalCost", totalCost);
         response.put("totalProfit", totalProfit);
 
         return ResponseEntity.ok(response);
     }
 
+
     //Make a sale
     @PostMapping
     public ResponseEntity<?> createSale(
             Authentication authentication,
-            @RequestBody List<com.dcava.dcava_backend.dto.SaleItemDTO> items) {
+            @RequestBody CreateSaleDTO request) {
         try {
             if (authentication == null || authentication.getName() == null) {
-                return ResponseEntity.status(401).body("Usuario no autenticado");
+                return ResponseEntity.status(401).body("Unauthenticated user");
             }
 
             String uid = authentication.getName();
             UserAdmin user = userAdminService.findByUid(uid)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Sale sale = saleService.createSale(items, user);
+            Sale sale = saleService.createSale(request, user);
             return ResponseEntity.ok(new SaleDTO(sale));
 
         } catch (RuntimeException e) {

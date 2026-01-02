@@ -24,7 +24,9 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
         SELECT si.product_id
         FROM sale_items si
         JOIN sale s ON s.id = si.sale_id
-        WHERE s.sale_date >= DATE_SUB(NOW(), INTERVAL :months MONTH)
+        JOIN product p ON p.id = si.product_id
+        WHERE p.status_product = 'active' 
+          AND (s.sale_date >= DATE_SUB(NOW(), INTERVAL :months MONTH))
         GROUP BY si.product_id
         ORDER BY SUM(si.quantity) DESC
         LIMIT 10
@@ -32,7 +34,6 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
             nativeQuery = true
     )
     List<Integer> findTop10SellingProductIdsLastMonths(@Param("months") int months);
-
 
 
 }

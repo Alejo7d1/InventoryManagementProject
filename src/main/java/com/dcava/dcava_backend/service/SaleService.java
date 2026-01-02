@@ -1,6 +1,7 @@
 package com.dcava.dcava_backend.service;
 
 
+import com.dcava.dcava_backend.dto.CreateSaleDTO;
 import com.dcava.dcava_backend.model.*;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import com.dcava.dcava_backend.repository.SaleRepository;
@@ -26,55 +27,85 @@ public class SaleService {
     }
 
     @Transactional
-    public Sale createSale(List<SaleItemDTO> itemsDTO, UserAdmin user) {
+    public Sale createSale(CreateSaleDTO request, UserAdmin user) {
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new RuntimeException("Sale must contain at least one item");
+        }
+
         Sale sale = new Sale();
         sale.setUser(user);
         sale.setSaleDate(LocalDateTime.now());
 
-        double total = 0.0;
+        double subtotal = 0.0;
         List<SaleItem> items = new ArrayList<>();
 
-        for (SaleItemDTO dto : itemsDTO) {
+        for (SaleItemDTO dto : request.getItems()) {
+
             Product product = productRepository.findById(dto.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found " + dto.getProductId()));
 
+            if ("inactive".equals(product.getStatus())) {
+                throw new RuntimeException("Product inactive " + product.getName());
+            }
+
+            if (dto.getQuantity() < 1) {
+                throw new RuntimeException("Invalid quantity for " + product.getName());
+            }
+
             if (product.getStock() < dto.getQuantity()) {
-                throw new RuntimeException("insufficient stock " + product.getName());
+                throw new RuntimeException("Insufficient stock for " + product.getName());
             }
 
-            if(dto.getQuantity() < 1){
-                throw new RuntimeException("insufficient quantity from" + product.getName());
-            }
-
-            if(Objects.equals(product.getStatus(), "inactive")) {
-                throw new RuntimeException("Product not found " + dto.getProductId());
-            }
-
-            // Discount stock
+            // Update stock
             product.setStock(product.getStock() - dto.getQuantity());
             productRepository.save(product);
 
-            double price = product.getPrice();
-            double cost = product.getCost();
-            double profit = (price - cost) * dto.getQuantity();
+            double unitPrice = product.getPrice();
+            double unitCost = product.getCost();
+            double itemTotal = unitPrice * dto.getQuantity();
 
             SaleItem item = new SaleItem();
             item.setProduct(product);
             item.setQuantity(dto.getQuantity());
-            item.setUnitPrice(price);
-            item.setUnitCost(cost);
-            item.setProfit(profit);
+            item.setUnitPrice(unitPrice);
+            item.setUnitCost(unitCost);
+            item.setProfit((unitPrice - unitCost) * dto.getQuantity());
             item.setSale(sale);
-            items.add(item);
 
-            total += price * dto.getQuantity();
+            items.add(item);
+            subtotal += itemTotal;
         }
 
         sale.setItems(items);
+        sale.setSubtotal(subtotal);
+
+        double total = subtotal;
+        double discount = 0.0;
+
+        if (request.getFinalTotal() != null) {
+
+            double finalTotal = request.getFinalTotal();
+
+            if (finalTotal <= 0) {
+                throw new RuntimeException("Final total must be greater than zero");
+            }
+
+            if (finalTotal > subtotal) {
+                throw new RuntimeException("Final total cannot exceed subtotal");
+            }
+
+            discount = subtotal - finalTotal;
+            total = finalTotal;
+        }
+
+        sale.setDiscount(discount);
         sale.setTotal(total);
+        sale.setNotes(request.getNotes());
 
         return saleRepository.save(sale);
     }
+
 
     public Optional<Sale> getById(Integer id) {
         return saleRepository.findById(id);
