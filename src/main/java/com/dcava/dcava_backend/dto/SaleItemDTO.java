@@ -4,25 +4,26 @@ import com.dcava.dcava_backend.model.SaleItem;
 
 public class SaleItemDTO {
     private Integer productId;
-    private String productName;
+    private String itemName;
+    private String itemDescription;
+    private boolean external;
     private int quantity;
     private double unitPrice;
     private double unitCost;
-    private double profit;
 
-    //important, used by jackson he he
     public SaleItemDTO() {}
 
     public SaleItemDTO(SaleItem item) {
-        this.productId = item.getProduct().getId();
-        this.productName = item.getProduct().getName();
+        this.productId = item.getProduct() != null ? item.getProduct().getId() : null;
+        this.itemName = item.getItemName();
+        this.itemDescription = item.getItemDescription();
+        this.external = item.isExternal();
         this.quantity = item.getQuantity();
         this.unitPrice = item.getUnitPrice();
         this.unitCost = item.getUnitCost();
-        this.profit = item.getProfit();
     }
 
-    // getters and Setters
+    // getters & setters
     public Integer getProductId() {
         return productId;
     }
@@ -31,12 +32,28 @@ public class SaleItemDTO {
         this.productId = productId;
     }
 
-    public String getProductName() {
-        return productName;
+    public String getItemName() {
+        return itemName;
     }
 
-    public void setProductName(String productName) {
-        this.productName = productName;
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getItemDescription() {
+        return itemDescription;
+    }
+
+    public void setItemDescription(String itemDescription) {
+        this.itemDescription = itemDescription;
+    }
+
+    public boolean isExternal() {
+        return external;
+    }
+
+    public void setExternal(boolean external) {
+        this.external = external;
     }
 
     public int getQuantity() {
@@ -63,12 +80,6 @@ public class SaleItemDTO {
         this.unitCost = unitCost;
     }
 
-    public double getProfit() {
-        return profit;
-    }
-
-    public void setProfit(double profit) {
-        this.profit = profit;
-    }
 }
+
 

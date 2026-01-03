@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -36,72 +35,94 @@ public class SaleService {
         Sale sale = new Sale();
         sale.setUser(user);
         sale.setSaleDate(LocalDateTime.now());
+        sale.setNotes(request.getNotes());
 
         double subtotal = 0.0;
         List<SaleItem> items = new ArrayList<>();
 
         for (SaleItemDTO dto : request.getItems()) {
 
-            Product product = productRepository.findById(dto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found " + dto.getProductId()));
-
-            if ("inactive".equals(product.getStatus())) {
-                throw new RuntimeException("Product inactive " + product.getName());
-            }
-
             if (dto.getQuantity() < 1) {
-                throw new RuntimeException("Invalid quantity for " + product.getName());
+                throw new RuntimeException("Invalid quantity");
             }
-
-            if (product.getStock() < dto.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for " + product.getName());
-            }
-
-            // Update stock
-            product.setStock(product.getStock() - dto.getQuantity());
-            productRepository.save(product);
-
-            double unitPrice = product.getPrice();
-            double unitCost = product.getCost();
-            double itemTotal = unitPrice * dto.getQuantity();
 
             SaleItem item = new SaleItem();
-            item.setProduct(product);
-            item.setQuantity(dto.getQuantity());
-            item.setUnitPrice(unitPrice);
-            item.setUnitCost(unitCost);
-            item.setProfit((unitPrice - unitCost) * dto.getQuantity());
             item.setSale(sale);
+            item.setQuantity(dto.getQuantity());
 
-            items.add(item);
+            // If catalogued product
+            if (dto.getProductId() != null) {
+
+                Product product = productRepository.findById(dto.getProductId())
+                        .orElseThrow(() -> new RuntimeException("Product not found " + dto.getProductId()));
+
+                if ("inactive".equals(product.getStatus())) {
+                    throw new RuntimeException("Product inactive " + product.getName());
+                }
+
+                if (product.getStock() < dto.getQuantity()) {
+                    throw new RuntimeException("Insufficient stock for " + product.getName());
+                }
+
+                product.setStock(product.getStock() - dto.getQuantity());
+                productRepository.save(product);
+
+                item.setProduct(product);
+                item.setItemName(product.getName());
+                item.setItemDescription(product.getDescription());
+                item.setUnitPrice(product.getPrice());
+                item.setUnitCost(product.getCost());
+                item.setExternal(false);
+
+            }
+            // If external Product
+            else {
+
+                if (dto.getItemName() == null || dto.getItemName().isBlank()) {
+                    throw new RuntimeException("External item must have a name");
+                }
+
+                if (dto.getUnitPrice() <= 0) {
+                    throw new RuntimeException("Invalid unit price for external item");
+                }
+
+                item.setProduct(null);
+                item.setItemName(dto.getItemName());
+                item.setItemDescription(dto.getItemDescription());
+                item.setUnitPrice(dto.getUnitPrice());
+                item.setUnitCost(dto.getUnitCost());
+                item.setExternal(true);
+            }
+
+            double itemTotal = item.getUnitPrice() * item.getQuantity();
+
             subtotal += itemTotal;
+            items.add(item);
         }
 
         sale.setItems(items);
         sale.setSubtotal(subtotal);
 
-        double total = subtotal;
+        // discount
         double discount = 0.0;
+        double total = subtotal;
 
         if (request.getFinalTotal() != null) {
 
-            double finalTotal = request.getFinalTotal();
-
-            if (finalTotal <= 0) {
+            if (request.getFinalTotal() <= 0) {
                 throw new RuntimeException("Final total must be greater than zero");
             }
 
-            if (finalTotal > subtotal) {
+            if (request.getFinalTotal() > subtotal) {
                 throw new RuntimeException("Final total cannot exceed subtotal");
             }
 
-            discount = subtotal - finalTotal;
-            total = finalTotal;
+            discount = subtotal - request.getFinalTotal();
+            total = request.getFinalTotal();
         }
 
         sale.setDiscount(discount);
         sale.setTotal(total);
-        sale.setNotes(request.getNotes());
 
         return saleRepository.save(sale);
     }

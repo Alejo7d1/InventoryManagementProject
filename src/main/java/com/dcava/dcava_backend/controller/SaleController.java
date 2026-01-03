@@ -2,6 +2,7 @@ package com.dcava.dcava_backend.controller;
 
 import com.dcava.dcava_backend.dto.CreateSaleDTO;
 import com.dcava.dcava_backend.dto.SaleDTO;
+import com.dcava.dcava_backend.dto.SaleDetailDTO;
 import com.dcava.dcava_backend.model.Sale;
 import com.dcava.dcava_backend.model.SaleItem;
 import com.dcava.dcava_backend.model.UserAdmin;
@@ -35,7 +36,9 @@ public class SaleController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getSale(@PathVariable Integer id) {
         return saleService.getById(id)
-                .<ResponseEntity<?>>map(sale -> ResponseEntity.ok(new SaleDTO(sale)))
+                .<ResponseEntity<?>>map(sale ->
+                        ResponseEntity.ok(new SaleDetailDTO(sale))
+                )
                 .orElse(ResponseEntity.status(404).body("Sale not found"));
     }
 
@@ -67,9 +70,9 @@ public class SaleController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("sales", dtos);
-        response.put("totalSales", totalSales);
         response.put("totalSubtotal", totalSubtotal);
         response.put("totalDiscount", totalDiscount);
+        response.put("total", totalSales);
         response.put("totalCost", totalCost);
         response.put("totalProfit", totalProfit);
 

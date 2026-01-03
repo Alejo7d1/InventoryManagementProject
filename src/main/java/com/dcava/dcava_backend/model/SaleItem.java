@@ -14,9 +14,17 @@ public class SaleItem {
     @JoinColumn(name = "sale_id", nullable = false)
     private Sale sale;
 
+    // Optional ID
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id")
     private Product product;
+
+    // Product snapshot
+    @Column(name = "item_name", nullable = false)
+    private String itemName;
+
+    @Column(name = "item_description")
+    private String itemDescription;
 
     @Column(nullable = false)
     private int quantity;
@@ -27,10 +35,10 @@ public class SaleItem {
     @Column(name = "unit_cost", nullable = false)
     private double unitCost;
 
-    @Column(nullable = false)
-    private double profit;
+    @Column(name = "is_external", nullable = false)
+    private boolean external;
 
-    //Getter and Setter
+    // getters & setters
 
     public Integer getId() {
         return id;
@@ -54,6 +62,22 @@ public class SaleItem {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getItemDescription() {
+        return itemDescription;
+    }
+
+    public void setItemDescription(String itemDescription) {
+        this.itemDescription = itemDescription;
     }
 
     public int getQuantity() {
@@ -80,11 +104,11 @@ public class SaleItem {
         this.unitCost = unitCost;
     }
 
-    public double getProfit() {
-        return profit;
+    public boolean isExternal() {
+        return external;
     }
 
-    public void setProfit(double profit) {
-        this.profit = profit;
+    public void setExternal(boolean external) {
+        this.external = external;
     }
 }
