@@ -1,0 +1,214 @@
+package com.dcava.dcava_backend.service;
+
+import com.dcava.dcava_backend.dto.ProductPublicDTO;
+import com.dcava.dcava_backend.model.Product;
+import com.dcava.dcava_backend.model.ProductImage;
+import com.dcava.dcava_backend.repository.ProductImageRepository;
+import com.dcava.dcava_backend.repository.ProductRepository;
+import com.dcava.dcava_backend.repository.SaleRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+
+@Service
+public class ProductService {
+    private final SaleRepository saleRepository;
+    private final ProductRepository productRepository;
+    int pageSize = 20;
+
+    private final ProductRepository productRepo;
+    private final ProductImageService imageService;
+    private final ProductImageRepository productImageRepository;
+
+    public ProductService(ProductRepository productRepo, ProductImageService imageService, ProductImageRepository productImageRepository, SaleRepository saleRepository, ProductRepository productRepository) {
+        this.productRepo = productRepo;
+        this.imageService = imageService;
+        this.productImageRepository = productImageRepository;
+        this.saleRepository = saleRepository;
+        this.productRepository = productRepository;
+    }
+
+    public Page<Product> search(
+            String text,
+            String category,
+            int page,
+            String sort,
+            String order
+    ) {
+        List<String> allowedSorts = List.of("id", "stock", "price", "name");
+        if (!allowedSorts.contains(sort)) {
+            sort = "id";
+        }
+
+        Sort.Direction direction =
+                order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Sort sortObj = Sort.by(direction, sort);
+
+        return productRepo.searchProducts(
+                text,
+                category == null || category.isBlank() ? null : category,
+                PageRequest.of(page, pageSize, sortObj)
+        );
+    }
+
+
+    public Page<Product> adminSearch(
+            String text,
+            String category,
+            int page,
+            String status,
+            String sort,
+            String order
+    ) {
+        List<String> allowedSorts =
+                List.of("id", "stock", "price", "name", "createdAt");
+
+        if (!allowedSorts.contains(sort)) {
+            sort = "id";
+        }
+
+        Sort.Direction direction =
+                order.equalsIgnoreCase("desc")
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(
+                page,
+                pageSize,
+                Sort.by(direction, sort)
+        );
+
+        String normalizedStatus =
+                (status == null || status.isBlank()) ? null : status.toLowerCase();
+
+        String normalizedCategory =
+                (category == null || category.isBlank()) ? null : category.toLowerCase();
+
+        return productRepo.searchAdminProducts(
+                text,
+                normalizedStatus,
+                normalizedCategory,
+                pageable
+        );
+    }
+
+
+    public Optional<Product> findById(int id) {
+        return productRepo.findById(id);
+    }
+
+    public Page<Product> getLowStockProducts(int page, int threshold) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return productRepo.findLowStockProducts(threshold, pageable);
+    }
+
+    @Transactional
+    public Product save(Product product, List<MultipartFile> images) throws IOException {
+        Product savedProduct = productRepo.save(product);
+
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                imageService.saveImage(savedProduct.getId(), file);
+            }
+        } else {
+            imageService.saveGenericImage(savedProduct.getId());
+        }
+
+        return savedProduct;
+    }
+
+    public Product update(int id, Product updated) {
+        return productRepo.findById(id).map(p -> {
+            p.setName(updated.getName());
+            p.setDescription(updated.getDescription());
+            p.setPrice(updated.getPrice());
+            p.setCost(updated.getCost());
+            p.setStock(updated.getStock());
+            p.setCompatibility(updated.getCompatibility());
+            p.setCategory(updated.getCategory());
+
+            return productRepo.save(p);
+        }).orElseThrow(() -> new RuntimeException("Product not found"));
+    }
+
+    public boolean restore(int id) {
+        return productRepo.findById(id).map(p -> {
+            p.setStatus("active");
+            productRepo.save(p);
+            return true;
+        }).orElse(false);
+    }
+
+    public List<ProductPublicDTO> getTopSellingProducts(int months) {
+
+        List<Integer> productIds =
+                saleRepository.findTop10SellingProductIdsLastMonths(months);
+
+        if (productIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Product> products = productRepository.findAllById(productIds);
+
+        Map<Integer, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        return productIds.stream() // mantiene el orden del ranking
+                .map(productMap::get)
+                .filter(Objects::nonNull)
+                .map(ProductPublicDTO::new)
+                .toList();
+    }
+
+
+    //delete product
+    @Transactional
+    public boolean deactivate(int id) {
+        return productRepo.findById(id).map(product -> {
+
+            // Get all product images
+            List<ProductImage> images = productImageRepository.findByProductId(id);
+
+            // Remove all non-default images
+            for (ProductImage img : images) {
+                if (!"default.png".equals(img.getFileName())) {
+                    imageService.deleteImage(img.getId());
+                }
+            }
+            boolean hasDefault = productImageRepository.findByProductId(id).stream()
+                    .anyMatch(img -> "default.png".equals(img.getFileName()));
+
+            if (!hasDefault) imageService.saveGenericImage(product.getId());
+
+            product.setStatus("inactive");
+            productRepo.save(product);
+            return true;
+        }).orElse(false);
+    }
+
+    public boolean updateStock(int id, int quantity) {
+        return productRepo.findById(id).map(p -> {
+            p.setStock(quantity);
+            productRepo.save(p);
+            return true;
+        }).orElse(false);
+    }
+
+    public List<Product> getAllProductsDeactivated() {
+        return productRepo.findDeletedProducts();
+    }
+}
+
