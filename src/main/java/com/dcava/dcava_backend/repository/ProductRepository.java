@@ -14,15 +14,15 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Search for (name, description or compatibility)
     @Query("""
-SELECT p FROM Product p
-    WHERE p.status = 'active'
-      AND (
-        LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%'))
-        OR LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%'))
-        OR LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))
-      )
-      AND (:category IS NULL OR LOWER(p.category) = LOWER(:category))
-""")
+    SELECT p FROM Product p
+        WHERE p.status = 'active'
+          AND (
+            LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%'))
+            OR LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%'))
+            OR LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))
+          )
+          AND (:category IS NULL OR LOWER(p.category) = LOWER(:category))
+    """)
     Page<Product> searchProducts(
             @Param("text") String text,
             @Param("category") String category,
@@ -30,14 +30,22 @@ SELECT p FROM Product p
     );
 
     //List all
-    @Query("SELECT p FROM Product p WHERE " +
-            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%')) " +
-            "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%')) " +
-            "OR LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))) " +
-            "AND (:status IS NULL OR p.status = :status)")
-    Page<Product> searchAdminProducts(@Param("text") String text,
-                                      @Param("status") String status,
-                                      Pageable pageable);
+    @Query("""
+    SELECT p FROM Product p
+    WHERE (
+        LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%'))
+        OR LOWER(p.description) LIKE LOWER(CONCAT('%', :text, '%'))
+        OR LOWER(p.compatibility) LIKE LOWER(CONCAT('%', :text, '%'))
+    )
+    AND (:status IS NULL OR LOWER(p.status) = LOWER(:status))
+    AND (:category IS NULL OR LOWER(p.category) = LOWER(:category))
+    """)
+        Page<Product> searchAdminProducts(
+                @Param("text") String text,
+                @Param("status") String status,
+                @Param("category") String category,
+                Pageable pageable
+        );
 
     //List of product in the category
     @Query("SELECT DISTINCT p.category FROM Product p " + "WHERE p.status = 'active' AND p.category IS NOT NULL AND p.category <> ''")

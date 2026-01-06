@@ -65,24 +65,46 @@ public class ProductService {
     }
 
 
-    public Page<Product> adminSearch(String text, int page, String status, String sort, String order) {
-        List<String> allowedSorts = List.of("id", "stock", "price", "name", "createdAt");
+    public Page<Product> adminSearch(
+            String text,
+            String category,
+            int page,
+            String status,
+            String sort,
+            String order
+    ) {
+        List<String> allowedSorts =
+                List.of("id", "stock", "price", "name", "createdAt");
+
         if (!allowedSorts.contains(sort)) {
             sort = "id";
         }
 
         Sort.Direction direction =
-                order.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+                order.equalsIgnoreCase("desc")
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(
                 page,
                 pageSize,
                 Sort.by(direction, sort)
         );
+
         String normalizedStatus =
                 (status == null || status.isBlank()) ? null : status.toLowerCase();
-        return productRepo.searchAdminProducts(text, normalizedStatus, pageable);
+
+        String normalizedCategory =
+                (category == null || category.isBlank()) ? null : category.toLowerCase();
+
+        return productRepo.searchAdminProducts(
+                text,
+                normalizedStatus,
+                normalizedCategory,
+                pageable
+        );
     }
+
 
     public Optional<Product> findById(int id) {
         return productRepo.findById(id);

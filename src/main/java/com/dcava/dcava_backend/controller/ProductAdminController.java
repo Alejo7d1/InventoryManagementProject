@@ -38,11 +38,20 @@ public class ProductAdminController {
     public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(defaultValue = "") String text,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "int") String sort,
+            @RequestParam(defaultValue = "id") String sort,
             @RequestParam(defaultValue = "asc") String order
     ) {
-        Page<Product> result = productService.adminSearch(text, page, status, sort, order);
+        Page<Product> result = productService.adminSearch(
+                text,
+                category,
+                page,
+                status,
+                sort,
+                order
+        );
+
         Page<ProductAdminDTO> dtoPage = result.map(ProductAdminDTO::new);
 
         Map<String, Object> response = new HashMap<>();
@@ -54,6 +63,7 @@ public class ProductAdminController {
 
         return ResponseEntity.ok(response);
     }
+
 
     //get deleted products
     @GetMapping("/deleted")
