@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.service;
 
+import com.dcava.dcava_backend.config.AppProperties;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.repository.ProductImageRepository;
@@ -8,75 +9,120 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 public class ProductImageService {
 
-    @Value("${app.upload.dir}")
-    private String baseUploadDir;
-
     private final ProductImageRepository imageRepository;
     private final ProductRepository productRepository;
+    private final S3Client r2Client;
+    private final AppProperties appProperties;
 
-    public ProductImageService(ProductImageRepository imageRepository, ProductRepository productRepository) {
+    public ProductImageService(
+            ProductImageRepository imageRepository,
+            ProductRepository productRepository,
+            S3Client r2Client,
+            AppProperties appProperties
+    ) {
         this.imageRepository = imageRepository;
         this.productRepository = productRepository;
+        this.r2Client = r2Client;
+        this.appProperties = appProperties;
     }
 
     //Get images by product
     public List<ProductImage> getImagesByProduct(Integer productId) {
-        return imageRepository.findByProductId(productId);
+        List<ProductImage> images = imageRepository.findByProductId(productId);
+
+        String publicUrl = appProperties.getR2().getPublicUrl().trim();
+        String bucket = appProperties.getR2().getBucket().trim();
+
+        for (ProductImage img : images) {
+
+            if ("default.png".equals(img.getFileName())) {
+                continue;
+            }
+
+            String path = img.getFilePath().trim();
+
+            String fullUrl =
+                    publicUrl.endsWith("/")
+                            ? publicUrl + bucket + "/" + path
+                            : publicUrl + path;
+
+            img.setFilePath(fullUrl);
+        }
+
+        return images;
     }
+
+
 
     //Save image
     public ProductImage saveImage(Integer productId, MultipartFile file) throws IOException {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        String category = product.getCategory() != null ? product.getCategory() : "uncategorized";
-
-        //Format validate
-        if (!Objects.requireNonNull(file.getContentType()).startsWith("image/")) {
-            throw new IllegalArgumentException("Selected file is not an image");
-        }
-        //if product deleted
-        if(product.getStatus().equals("inactive")){
+        // Validate
+        if ("inactive".equals(product.getStatus())) {
             throw new IllegalArgumentException("This product is inactive");
         }
 
-        // Temp save in DB
-        ProductImage image = new ProductImage();
-        image.setProduct(product);
-        image.setFileName("temp");
-        image.setFilePath("temp");
+        // get byte array
+        byte[] bytes = file.getBytes();
 
-        ProductImage savedImage = imageRepository.save(image);
-
-        String originalFilename = file.getOriginalFilename();
-        String fileExtension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        // validate content type
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Selected file is not an image");
         }
 
-        //Save image
-        String newFileName = "image_" + savedImage.getId() + "_product_" + productId + ".png";
+        String category = product.getCategory() != null ? product.getCategory() : "uncategorized";
 
-        //Create directory
-        Path uploadPath = Paths.get(baseUploadDir, category).toAbsolutePath().normalize();
-        Files.createDirectories(uploadPath);
+        // temporal save in db
+        ProductImage image = new ProductImage();
+        image.setProduct(product);
+        image.setFileName("temp"); // Temporal
+        image.setFilePath("temp"); // Temporal
+        ProductImage savedImage = imageRepository.save(image);
 
-        //Save file with new name
-        Path filePath = uploadPath.resolve(newFileName);
-        file.transferTo(filePath.toFile());
+        // get real id
+        int imageId = savedImage.getId();
+
+        // generate name
+        String newFileName = "image_" + imageId + "_product_" + productId + "." + "png";
+        String r2Key = category + "/" + newFileName;
+
+        // upload to R2
+        try {
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(appProperties.getR2().getBucket())
+                    .key(r2Key)
+                    .contentType(contentType)
+                    .contentLength((long) bytes.length)
+                    .build();
+
+            r2Client.putObject(request, RequestBody.fromBytes(bytes));
+
+        } catch (S3Exception e) {
+            // if failed, delete the temp register
+            imageRepository.delete(savedImage);
+            throw new RuntimeException("Error uploading image to R2: " + e.awsErrorDetails().errorMessage(), e);
+        }
+
+        // Update image with real information
         savedImage.setFileName(newFileName);
-        savedImage.setFilePath("/uploads/" + category + "/" + newFileName);
+        savedImage.setFilePath("/" + r2Key);
 
         return imageRepository.save(savedImage);
     }
@@ -108,7 +154,6 @@ public class ProductImageService {
 
     //Delete image
     public boolean deleteImage(Integer imageId) {
-
         return imageRepository.findById(imageId).map(image -> {
 
             // Default image cannot be eliminated
@@ -117,19 +162,22 @@ public class ProductImageService {
                 return true;
             }
 
-            // file
+            // Eliminar de R2
             try {
-                Path filePath = Paths.get("." + image.getFilePath()).toAbsolutePath();
-                Files.deleteIfExists(filePath);
-            } catch (IOException e) {
-                throw new RuntimeException("Error deleting image file: " + e.getMessage());
+                // La key debe coincidir exactamente con la subida (sin / inicial)
+                String key = image.getFilePath().startsWith("/") ? image.getFilePath().substring(1) : image.getFilePath();
+                r2Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(appProperties.getR2().getBucket())
+                        .key(key)
+                        .build());
+            } catch (S3Exception e) {
+                throw new RuntimeException("Error deleting image from R2: " + e.awsErrorDetails().errorMessage(), e);
             }
 
-            //delete in DB
+            // Eliminar en DB
             imageRepository.delete(image);
             return true;
 
         }).orElseThrow(() -> new RuntimeException("Image not found"));
     }
 }
-

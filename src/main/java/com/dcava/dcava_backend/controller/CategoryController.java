@@ -1,7 +1,6 @@
 package com.dcava.dcava_backend.controller;
 
 import com.dcava.dcava_backend.dto.ProductPublicDTO;
-import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.service.CategoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

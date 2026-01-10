@@ -75,7 +75,7 @@ public class FirebaseFilter extends OncePerRequestFilter {
             FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(token);
             String uid = decoded.getUid();
 
-            // 🔐 AUTORIZACIÓN REAL
+            // Real auth
             if (!userService.existsByUid(uid)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "User not registered in system");
                 return;
