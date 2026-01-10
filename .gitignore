@@ -5,11 +5,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# uploads
-uploads/*
-/uploads2
-!uploads/
-!uploads/default.png
+# FIREBASE
+firebase/*
 
 # Environment / secrets
 /src/main/resources/application-env.properties
