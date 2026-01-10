@@ -4,7 +4,6 @@ import com.dcava.dcava_backend.service.UserAdminService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,38 +17,10 @@ import java.util.List;
 
 public class FirebaseFilter extends OncePerRequestFilter {
 
-    private final List<String> publicPatterns;
     private final UserAdminService userService;
-    private final AntPathMatcher matcher = new AntPathMatcher();
 
-    public FirebaseFilter(List<String> publicPatterns, UserAdminService userService) {
-        this.publicPatterns = publicPatterns;
+    public FirebaseFilter(UserAdminService userService) {
         this.userService = userService;
-    }
-
-    private boolean isPublicPath(HttpServletRequest request) {
-        String path = request.getServletPath();
-        String method = request.getMethod();
-
-        // Preflight CORS
-        if ("OPTIONS".equalsIgnoreCase(method)) return true;
-
-        for (String pattern : publicPatterns) {
-            if (pattern.contains(":")) {
-                String[] parts = pattern.split(":", 2);
-                String pMethod = parts[0];
-                String pPath = parts[1];
-
-                if (pMethod.equalsIgnoreCase(method) && matcher.match(pPath, path)) {
-                    return true;
-                }
-            } else {
-                if (matcher.match(pattern, path)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -58,15 +29,14 @@ public class FirebaseFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Public endpoint → no auth
-        if (isPublicPath(request)) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authorization token required");
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -75,9 +45,9 @@ public class FirebaseFilter extends OncePerRequestFilter {
             FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(token);
             String uid = decoded.getUid();
 
-            // Real auth
             if (!userService.existsByUid(uid)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "User not registered in system");
+                response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                        "User not registered in system");
                 return;
             }
 
@@ -85,11 +55,13 @@ public class FirebaseFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(uid, null, List.of());
 
             SecurityContextHolder.getContext().setAuthentication(auth);
-            filterChain.doFilter(request, response);
 
         } catch (FirebaseAuthException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired Firebase token");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid or expired Firebase token");
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 }
-

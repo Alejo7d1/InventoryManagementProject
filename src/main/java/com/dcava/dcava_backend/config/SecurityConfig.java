@@ -2,49 +2,52 @@ package com.dcava.dcava_backend.config;
 
 import com.dcava.dcava_backend.security.FirebaseFilter;
 import com.dcava.dcava_backend.service.UserAdminService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import java.util.List;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   UserAdminService userService) throws Exception {
-
-        List<String> publicPatterns = List.of(
-                "GET:/products/**",
-                "GET:/categories/**",
-                "GET:/advertisements/**",
-                "/uploads/**"
-        );
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            UserAdminService userService
+    ) throws Exception {
 
         FirebaseFilter firebaseFilter =
-                new FirebaseFilter(publicPatterns, userService);
+                new FirebaseFilter(userService);
 
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
+                        .requestMatchers(HttpMethod.GET,
                                 "/products/**",
                                 "/categories/**",
-                                "/advertisements/**",
-                                "/uploads/**"
+                                "/advertisements/**"
                         ).permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(firebaseFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        firebaseFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
 }
-
-
 
 
 

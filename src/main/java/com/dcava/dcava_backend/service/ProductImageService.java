@@ -5,7 +5,6 @@ import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,9 +15,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class ProductImageService {
@@ -92,8 +89,8 @@ public class ProductImageService {
         // temporal save in db
         ProductImage image = new ProductImage();
         image.setProduct(product);
-        image.setFileName("temp"); // Temporal
-        image.setFilePath("temp"); // Temporal
+        image.setFileName("temp");
+        image.setFilePath("temp");
         ProductImage savedImage = imageRepository.save(image);
 
         // get real id
@@ -133,20 +130,16 @@ public class ProductImageService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // already case
-        List<ProductImage> existingImages = imageRepository.findByProductId(productId);
+        boolean exists = imageRepository.findByProductId(productId)
+                .stream()
+                .anyMatch(img -> "image.png".equals(img.getFileName()));
 
-        for (ProductImage img : existingImages) {
-            if ("/uploads/default.png".equals(img.getFilePath())) {
-                return;
-            }
-        }
+        if (exists) return;
 
-        // Create a register
         ProductImage image = new ProductImage();
         image.setProduct(product);
-        image.setFileName("default.png");
-        image.setFilePath("/uploads/default.png");
+        image.setFileName("image.png");
+        image.setFilePath("/default/image.png");
 
         imageRepository.save(image);
     }
@@ -157,14 +150,14 @@ public class ProductImageService {
         return imageRepository.findById(imageId).map(image -> {
 
             // Default image cannot be eliminated
-            if ("default.png".equals(image.getFileName())) {
+            if ("image.png".equals(image.getFileName())) {
                 imageRepository.delete(image);
                 return true;
             }
 
-            // Eliminar de R2
+            // delete from R2
             try {
-                // La key debe coincidir exactamente con la subida (sin / inicial)
+
                 String key = image.getFilePath().startsWith("/") ? image.getFilePath().substring(1) : image.getFilePath();
                 r2Client.deleteObject(DeleteObjectRequest.builder()
                         .bucket(appProperties.getR2().getBucket())
@@ -174,7 +167,7 @@ public class ProductImageService {
                 throw new RuntimeException("Error deleting image from R2: " + e.awsErrorDetails().errorMessage(), e);
             }
 
-            // Eliminar en DB
+            // delete from db
             imageRepository.delete(image);
             return true;
 

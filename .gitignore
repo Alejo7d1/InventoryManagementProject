@@ -11,6 +11,9 @@ uploads/*
 !uploads/
 !uploads/default.png
 
+# Environment / secrets
+/src/main/resources/application-env.properties
+
 ### STS ###
 .apt_generated
 .classpath
