@@ -1,4 +1,5 @@
 HELP.md
+.env.dev
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -6,8 +7,12 @@ target/
 
 # uploads
 uploads/*
+/uploads2
 !uploads/
 !uploads/default.png
+
+# Environment / secrets
+/src/main/resources/application-env.properties
 
 ### STS ###
 .apt_generated

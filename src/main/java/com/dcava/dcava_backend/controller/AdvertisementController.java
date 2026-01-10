@@ -151,10 +151,6 @@ public class AdvertisementController {
             response.put("success", false);
             response.put("message", e.getMessage());
             return ResponseEntity.notFound().build();
-        } catch (IOException e) {
-            response.put("success", false);
-            response.put("message", "Error deleting the file: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

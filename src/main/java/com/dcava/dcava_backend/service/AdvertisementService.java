@@ -1,94 +1,197 @@
 package com.dcava.dcava_backend.service;
 
+import com.dcava.dcava_backend.config.AppProperties;
 import com.dcava.dcava_backend.model.Advertisement;
 import com.dcava.dcava_backend.model.Advertisement.AdType;
 import com.dcava.dcava_backend.repository.AdvertisementRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AdvertisementService {
 
-    @Autowired
-    private AdvertisementRepository advertisementRepository;
+    private final AdvertisementRepository advertisementRepository;
+    private final S3Client r2Client;
+    private final AppProperties appProperties;
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
+    private static final String ADS_DIR = "ads";
 
-    private static final String ADS_SUBDIR = "ads";
+    public AdvertisementService(
+            AdvertisementRepository advertisementRepository,
+            S3Client r2Client,
+            AppProperties appProperties
+    ) {
+        this.advertisementRepository = advertisementRepository;
+        this.r2Client = r2Client;
+        this.appProperties = appProperties;
+    }
 
-    public Advertisement createAdvertisement(MultipartFile file, String title, AdType adType) throws IOException {
+    public Advertisement createAdvertisement(
+            MultipartFile file,
+            String title,
+            AdType adType
+    ) throws IOException {
+
         // validate dimensions
         validateImageDimensions(file, adType);
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename != null ?
-                originalFilename.substring(originalFilename.lastIndexOf(".")) : ".png";
-        String filename = UUID.randomUUID().toString() + extension;
-
-        // create directory (if doesnt exist)
-        Path adsPath = Paths.get(uploadDir, ADS_SUBDIR);
-        if (!Files.exists(adsPath)) {
-            Files.createDirectories(adsPath);
+        // validate image
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Selected file is not an image");
         }
 
-        // save archive
-        Path filePath = adsPath.resolve(filename);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        byte[] bytes = file.getBytes();
 
-        // create register in DB
+        // filename
+        String originalFilename = file.getOriginalFilename();
+        String extension = ".png";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        String filename = UUID.randomUUID() + extension;
+        String r2Key = ADS_DIR + "/" + filename;
+
+        // upload to R2
+        try {
+            r2Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(appProperties.getR2().getBucket())
+                            .key(r2Key)
+                            .contentType(contentType)
+                            .contentLength((long) bytes.length)
+                            .build(),
+                    RequestBody.fromBytes(bytes)
+            );
+        } catch (S3Exception e) {
+            throw new RuntimeException(
+                    "Error uploading advertisement to R2: " +
+                            e.awsErrorDetails().errorMessage(),
+                    e
+            );
+        }
+
+        // save in DB
         Advertisement ad = new Advertisement();
-        ad.setFilePath("/uploads/" + ADS_SUBDIR + "/" + filename);
         ad.setTitle(title);
         ad.setAdType(adType);
+        ad.setFilePath("/" + r2Key); // ruta lógica
 
         return advertisementRepository.save(ad);
     }
 
     public List<Advertisement> getAllAdvertisements() {
-        return advertisementRepository.findAllByOrderByCreatedAtDesc();
+        List<Advertisement> ads = advertisementRepository.findAllByOrderByCreatedAtDesc();
+
+        String publicUrl = appProperties.getR2().getPublicUrl();
+
+        for (Advertisement ad : ads) {
+            String path = ad.getFilePath();
+
+            if (path == null || path.isBlank()) continue;
+            if (path.startsWith("http")) continue;
+
+            String fullUrl = publicUrl + path;
+            ad.setFilePath(fullUrl);
+        }
+        return ads;
     }
+
 
     public List<Advertisement> getAdvertisementsByType(AdType adType) {
-        return advertisementRepository.findByAdType(adType);
+        List<Advertisement> ads = advertisementRepository.findByAdType(adType);
+
+        String publicUrl = appProperties.getR2().getPublicUrl();
+
+        for (Advertisement ad : ads) {
+            String path = ad.getFilePath();
+
+            if (path == null || path.isBlank()) continue;
+            if (path.startsWith("http")) continue;
+
+            String fullUrl = publicUrl + path;
+
+            ad.setFilePath(fullUrl);
+        }
+        return ads;
     }
+
 
     public Advertisement getAdvertisementById(Integer id) {
-        return advertisementRepository.findById(id)
+        Advertisement ad = advertisementRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ad not found"));
+
+        String path = ad.getFilePath();
+
+        if (path != null && !path.isBlank() && !path.startsWith("http")) {
+            String publicUrl = appProperties.getR2().getPublicUrl();
+
+            String fullUrl = publicUrl + path;
+            ad.setFilePath(fullUrl);
+        }
+        return ad;
     }
 
 
-    public void deleteAdvertisement(Integer id) throws IOException {
-        Advertisement ad = getAdvertisementById(id);
-
-        // delete image
-        String relativePath = ad.getFilePath().replace("/uploads/", "");
-        Path filePath = Paths.get(uploadDir, relativePath);
-        if (Files.exists(filePath)) {
-            Files.delete(filePath);
+    public void deleteAdvertisement(Integer id) {
+        Advertisement ad = advertisementRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ad not found"));
+        try {
+            String key = getString(ad);
+            r2Client.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(appProperties.getR2().getBucket())
+                            .key(key)
+                            .build()
+            );
+        } catch (S3Exception e) {
+            throw new RuntimeException(
+                    "Error deleting advertisement from R2: " +
+                            e.awsErrorDetails().errorMessage(),
+                    e
+            );
         }
-
-        // delete register in DB
         advertisementRepository.delete(ad);
     }
 
+    private String getString(Advertisement ad) {
+        String filePath = ad.getFilePath();
+        // Extract R2 key
+        String key;
+
+        if (filePath.startsWith("http")) {
+            String publicUrl = appProperties.getR2().getPublicUrl();
+            String bucket = appProperties.getR2().getBucket();
+
+            key = filePath
+                    .replace(publicUrl, "")
+                    .replace("/" + bucket, "")
+                    .replaceFirst("^/", "");
+        } else {
+            // Ej: /ads/file.png
+            key = filePath.replaceFirst("^/", "");
+        }
+        return key;
+    }
+
+
+    //Validation
     private void validateImageDimensions(MultipartFile file, AdType adType) throws IOException {
         BufferedImage image = ImageIO.read(file.getInputStream());
         if (image == null) {
-            throw new IllegalArgumentException("invalid image format");
+            throw new IllegalArgumentException("Invalid image format");
         }
 
         int width = image.getWidth();
@@ -103,7 +206,7 @@ public class AdvertisementService {
                 }
                 if (height < 200 || height > 800) {
                     throw new IllegalArgumentException(
-                            "The banner should be between 200-800px high. Actual high. Actual: " + height + "px"
+                            "The banner should be between 200-800px high. Actual: " + height + "px"
                     );
                 }
                 break;
@@ -116,27 +219,22 @@ public class AdvertisementService {
                 }
                 if (height < 1000 || height > 3000) {
                     throw new IllegalArgumentException(
-                            "The sidebar should be between 250-600px high. Actual: " + height + "px"
+                            "The sidebar should be between 1000-3000px high. Actual: " + height + "px"
                     );
                 }
                 break;
 
             case SQUARE:
-                if (width < 600 || width > 2000) {
+                if (width < 600 || width > 2000 || height < 600 || height > 2000) {
                     throw new IllegalArgumentException(
-                            "The square should be between 600-2000px wide. Actual: " + width + "px"
+                            "The square should be between 600-2000px on each side. Actual: " +
+                                    width + "x" + height
                     );
                 }
-                if (height < 600 || height > 2000) {
-                    throw new IllegalArgumentException(
-                            "The square should be between 600-2000px high. Actual: " + height + "px"
-                    );
-                }
-                // Validate aspect-ratio
                 double ratio = (double) width / height;
                 if (ratio < 0.9 || ratio > 1.1) {
                     throw new IllegalArgumentException(
-                            "The square should be approximately square (1:1). Current ratio: " +
+                            "The square should be approximately 1:1. Current ratio: " +
                                     String.format("%.2f", ratio)
                     );
                 }

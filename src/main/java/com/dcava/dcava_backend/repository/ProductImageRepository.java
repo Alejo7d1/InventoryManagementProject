@@ -1,6 +1,5 @@
 package com.dcava.dcava_backend.repository;
 
-import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
