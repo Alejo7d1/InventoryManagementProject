@@ -11,7 +11,7 @@ target/
 firebase/*
 
 # Environment / secrets
-/src/main/resources/application-env.properties
+/config/application-dev.properties
 
 ### STS ###
 .apt_generated
