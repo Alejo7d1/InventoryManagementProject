@@ -7,33 +7,49 @@ import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
 
-    private static final String FIREBASE_CREDENTIALS_PATH =
-            System.getProperty("user.dir") + "/firebase/serviceAccountKey.json";
+    private final AppProperties appProperties;
 
+    public FirebaseConfig(AppProperties appProperties) {
+        this.appProperties = appProperties;
+    }
 
     @PostConstruct
-    public void initFirebase() throws IOException {
-        if (FirebaseApp.getApps().isEmpty()) {
-            File credentialsFile = new File(FIREBASE_CREDENTIALS_PATH);
+    public void initFirebase() {
 
-            if (!credentialsFile.exists()) {
-                throw new IllegalStateException(
-                        "Firebase credentials file not found: " + FIREBASE_CREDENTIALS_PATH);
-            }
+        String credentialsJson = appProperties.getFirebase().getCredentialsJson();
+
+        if (!FirebaseApp.getApps().isEmpty()) {
+            System.out.println("Firebase already initialize");
+            return;
+        }
+
+        if (credentialsJson == null || credentialsJson.isBlank()) {
+            throw new IllegalStateException(
+                    "app.firebase.credentials-json is not configured");
+        }
+
+        try {
+            InputStream credentialsStream = new ByteArrayInputStream(
+                    credentialsJson.getBytes(StandardCharsets.UTF_8)
+            );
 
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(new FileInputStream(credentialsFile)))
+                    .setCredentials(GoogleCredentials.fromStream(credentialsStream))
                     .build();
 
             FirebaseApp.initializeApp(options);
-            System.out.println("Firebase initialized successfully");
+            System.out.println("Firebase initialized successfully from JSON configuration");
+
+        } catch (Exception e) {
+            System.err.println("ERROR inicializando Firebase desde JSON: " + e.getMessage());
+            e.printStackTrace();
+            throw new IllegalStateException("Failed to initialize Firebase from JSON: " + e.getMessage(), e);
         }
     }
 }

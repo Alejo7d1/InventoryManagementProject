@@ -1,0 +1,19 @@
+FROM alpine:3.19
+
+# Instalar mysql-client, aws-cli, gzip, bash, tzdata y certificados
+RUN apk add --no-cache \
+    mysql-client \
+    aws-cli \
+    gzip \
+    bash \
+    tzdata \
+    ca-certificates
+
+WORKDIR /backup
+
+# Copiar script de backup
+COPY docker-backup/backup.sh /backup/backup.sh
+RUN chmod +x /backup/backup.sh
+
+# Ejecutar backup al iniciar el contenedor
+ENTRYPOINT ["/backup/backup.sh"]

@@ -1,9 +1,11 @@
 HELP.md
 .env.dev
+.env
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+/backups/
 
 # FIREBASE
 firebase/*

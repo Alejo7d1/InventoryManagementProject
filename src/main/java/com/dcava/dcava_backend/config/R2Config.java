@@ -28,7 +28,6 @@ public class R2Config {
                         )
                 )
                 .region(Region.US_EAST_1)
-                // ESTA LÍNEA ES CRÍTICA PARA R2
                 .serviceConfiguration(b -> b.chunkedEncodingEnabled(false))
                 .build();
     }
