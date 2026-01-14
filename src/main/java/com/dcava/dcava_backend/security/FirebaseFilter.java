@@ -29,14 +29,19 @@ public class FirebaseFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+        String path = request.getRequestURI();
+
+        // Ignore public endpoints
+        if (path.startsWith("/products") || path.startsWith("/categories")
+                || path.startsWith("/advertisements") || path.startsWith("/uploads")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+
+        if (header == null || !header.startsWith("Bearer ") || header.length() <= 7) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization token");
             return;
         }
 
@@ -46,19 +51,16 @@ public class FirebaseFilter extends OncePerRequestFilter {
             String uid = decoded.getUid();
 
             if (!userService.existsByUid(uid)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                        "User not registered in system");
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, "User not registered in system");
                 return;
             }
 
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(uid, null, List.of());
-
             SecurityContextHolder.getContext().setAuthentication(auth);
 
         } catch (FirebaseAuthException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid or expired Firebase token");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired Firebase token");
             return;
         }
 
