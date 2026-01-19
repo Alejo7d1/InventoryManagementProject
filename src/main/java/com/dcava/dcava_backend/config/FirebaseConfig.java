@@ -3,6 +3,7 @@ package com.dcava.dcava_backend.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
@@ -13,43 +14,38 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class FirebaseConfig {
 
-    private final AppProperties appProperties;
+    @Value("${app.firebase.credentials-path:}")
+    private String credentialsPath;
 
-    public FirebaseConfig(AppProperties appProperties) {
-        this.appProperties = appProperties;
-    }
+    @Value("${app.firebase.credentials-json:}")
+    private String credentialsJson;
 
     @PostConstruct
     public void initFirebase() {
-
-        String credentialsJson = appProperties.getFirebase().getCredentialsJson();
-
-        if (!FirebaseApp.getApps().isEmpty()) {
-            System.out.println("Firebase already initialize");
-            return;
-        }
-
-        if (credentialsJson == null || credentialsJson.isBlank()) {
-            throw new IllegalStateException(
-                    "app.firebase.credentials-json is not configured");
-        }
-
         try {
-            InputStream credentialsStream = new ByteArrayInputStream(
-                    credentialsJson.getBytes(StandardCharsets.UTF_8)
-            );
+            GoogleCredentials credentials;
+
+            if (credentialsPath != null && !credentialsPath.isBlank()) {
+                try (FileInputStream serviceAccount = new FileInputStream(credentialsPath)) {
+                    credentials = GoogleCredentials.fromStream(serviceAccount);
+                }
+            } else if (credentialsJson != null && !credentialsJson.isBlank()) {
+                try (InputStream is = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8))) {
+                    credentials = GoogleCredentials.fromStream(is);
+                }
+            } else {
+                throw new IllegalStateException("Firebase credentials not provided. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON.");
+            }
 
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                    .setCredentials(credentials)
                     .build();
 
-            FirebaseApp.initializeApp(options);
-            System.out.println("Firebase initialized successfully from JSON configuration");
-
+            if (FirebaseApp.getApps().isEmpty()) {
+                FirebaseApp.initializeApp(options);
+            }
         } catch (Exception e) {
-            System.err.println("ERROR inicializando Firebase desde JSON: " + e.getMessage());
-            e.printStackTrace();
-            throw new IllegalStateException("Failed to initialize Firebase from JSON: " + e.getMessage(), e);
+            throw new IllegalStateException("Failed to initialize Firebase", e);
         }
     }
 }
