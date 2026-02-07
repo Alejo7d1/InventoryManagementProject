@@ -81,19 +81,18 @@ public class AdvertisementController {
     public ResponseEntity<Map<String, Object>> uploadAdvertisement(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
-            @RequestParam("adType") String adTypeStr
+            @RequestParam("adType") String adTypeStr,
+            @RequestParam(value = "linkUrl", required = false) String linkUrl
     ) {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // validate file
             if (file.isEmpty()) {
                 response.put("success", false);
                 response.put("message", "file it's empty");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // validate content
             String contentType = file.getContentType();
             if (contentType == null || !contentType.startsWith("image/")) {
                 response.put("success", false);
@@ -101,14 +100,12 @@ public class AdvertisementController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Validate max size (max 8MB)
             if (file.getSize() > 8 * 1024 * 1024) {
                 response.put("success", false);
-                response.put("message", "The file must not exceed 5MB");
+                response.put("message", "The file must not exceed 8MB");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // convert and validate add
             AdType adType;
             try {
                 adType = AdType.valueOf(adTypeStr.toUpperCase());
@@ -118,8 +115,8 @@ public class AdvertisementController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Create add
-            Advertisement advertisement = advertisementService.createAdvertisement(file, title, adType);
+            Advertisement advertisement =
+                    advertisementService.createAdvertisement(file, title, adType, linkUrl);
 
             response.put("success", true);
             response.put("message", "Ad created successfully");

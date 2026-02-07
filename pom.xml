@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.dcava</groupId>
 	<artifactId>dcava-backend</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>DCAVA Backend</name>
 	<description>Inventory and sales management system for DCAVA</description>
 	<url/>

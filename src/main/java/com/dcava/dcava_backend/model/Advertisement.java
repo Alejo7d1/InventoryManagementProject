@@ -19,6 +19,9 @@ public class Advertisement {
     @Column(name = "title", length = 150)
     private String title;
 
+    @Column(name = "link_url", length = 500)
+    private String linkUrl; // nullable
+
     @Enumerated(EnumType.STRING)
     @Column(name = "ad_type", length = 12)
     private AdType adType;
@@ -72,5 +75,13 @@ public class Advertisement {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getLinkUrl() {
+        return linkUrl;
+    }
+
+    public void setLinkUrl(String linkUrl) {
+        this.linkUrl = linkUrl;
     }
 }

@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,21 +41,22 @@ public class AdvertisementService {
     public Advertisement createAdvertisement(
             MultipartFile file,
             String title,
-            AdType adType
+            AdType adType,
+            String linkUrl
     ) throws IOException {
 
-        // validate dimensions
         validateImageDimensions(file, adType);
 
-        // validate image
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new IllegalArgumentException("Selected file is not an image");
         }
 
+        // normaliza link (opcional)
+        String normalizedLink = normalizeOptionalUrl(linkUrl);
+
         byte[] bytes = file.getBytes();
 
-        // filename
         String originalFilename = file.getOriginalFilename();
         String extension = ".png";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -64,7 +66,6 @@ public class AdvertisementService {
         String filename = UUID.randomUUID() + extension;
         String r2Key = ADS_DIR + "/" + filename;
 
-        // upload to R2
         try {
             r2Client.putObject(
                     PutObjectRequest.builder()
@@ -83,13 +84,35 @@ public class AdvertisementService {
             );
         }
 
-        // save in DB
         Advertisement ad = new Advertisement();
         ad.setTitle(title);
         ad.setAdType(adType);
-        ad.setFilePath("/" + r2Key); // ruta lógica
+        ad.setFilePath("/" + r2Key);
+        ad.setLinkUrl(normalizedLink); // puede ser null
 
         return advertisementRepository.save(ad);
+    }
+
+    private String normalizeOptionalUrl(String linkUrl) {
+        if (linkUrl == null) return null;
+
+        String trimmed = linkUrl.trim();
+        if (trimmed.isEmpty()) return null;
+
+        // only http/https
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                throw new IllegalArgumentException("Invalid link URL scheme (only http/https allowed)");
+            }
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new IllegalArgumentException("Invalid link URL host");
+            }
+            return trimmed;
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid link URL: " + trimmed);
+        }
     }
 
     public List<Advertisement> getAllAdvertisements() {
