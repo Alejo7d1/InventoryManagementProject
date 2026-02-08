@@ -1,8 +1,8 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.advertisement;
 
 import com.dcava.dcava_backend.model.Advertisement;
 import com.dcava.dcava_backend.model.Advertisement.AdType;
-import com.dcava.dcava_backend.service.AdvertisementService;
+import com.dcava.dcava_backend.service.advertisement.AdvertisementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

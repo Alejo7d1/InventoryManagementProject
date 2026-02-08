@@ -1,11 +1,11 @@
-package com.dcava.dcava_backend.service;
+package com.dcava.dcava_backend.service.sale;
 
 
-import com.dcava.dcava_backend.dto.CreateSaleDTO;
+import com.dcava.dcava_backend.dto.sale.CreateSaleDTO;
 import com.dcava.dcava_backend.model.*;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import com.dcava.dcava_backend.repository.SaleRepository;
-import com.dcava.dcava_backend.dto.SaleItemDTO;
+import com.dcava.dcava_backend.dto.sale.SaleItemDTO;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 

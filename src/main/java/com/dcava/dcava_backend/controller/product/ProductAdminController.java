@@ -1,9 +1,9 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.product;
 
-import com.dcava.dcava_backend.dto.ProductAdminDTO;
+import com.dcava.dcava_backend.dto.product.ProductAdminDTO;
 import com.dcava.dcava_backend.model.Product;
-import com.dcava.dcava_backend.service.ProductImageService;
-import com.dcava.dcava_backend.service.ProductService;
+import com.dcava.dcava_backend.service.product.ProductImageService;
+import com.dcava.dcava_backend.service.product.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

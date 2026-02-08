@@ -1,9 +1,9 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.user;
 
-import com.dcava.dcava_backend.dto.SaleDTO;
+import com.dcava.dcava_backend.dto.sale.SaleDTO;
 import com.dcava.dcava_backend.model.Sale;
-import com.dcava.dcava_backend.service.SaleService;
-import com.dcava.dcava_backend.service.UserAdminService;
+import com.dcava.dcava_backend.service.sale.SaleService;
+import com.dcava.dcava_backend.service.user.UserAdminService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

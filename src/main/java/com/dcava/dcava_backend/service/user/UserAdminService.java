@@ -1,4 +1,4 @@
-package com.dcava.dcava_backend.service;
+package com.dcava.dcava_backend.service.user;
 
 import com.dcava.dcava_backend.model.UserAdmin;
 import com.dcava.dcava_backend.repository.UserAdminRepository;

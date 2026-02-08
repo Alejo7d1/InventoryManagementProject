@@ -1,4 +1,4 @@
-package com.dcava.dcava_backend.dto;
+package com.dcava.dcava_backend.dto.sale;
 
 import java.util.List;
 

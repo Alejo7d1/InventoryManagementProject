@@ -1,14 +1,14 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.sale;
 
-import com.dcava.dcava_backend.dto.CreateSaleDTO;
-import com.dcava.dcava_backend.dto.SaleDTO;
-import com.dcava.dcava_backend.dto.SaleDetailDTO;
+import com.dcava.dcava_backend.dto.sale.CreateSaleDTO;
+import com.dcava.dcava_backend.dto.sale.SaleDTO;
+import com.dcava.dcava_backend.dto.sale.SaleDetailDTO;
 import com.dcava.dcava_backend.model.Sale;
 import com.dcava.dcava_backend.model.SaleItem;
 import com.dcava.dcava_backend.model.UserAdmin;
 
-import com.dcava.dcava_backend.service.SaleService;
-import com.dcava.dcava_backend.service.UserAdminService;
+import com.dcava.dcava_backend.service.sale.SaleService;
+import com.dcava.dcava_backend.service.user.UserAdminService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
