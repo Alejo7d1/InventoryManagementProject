@@ -1,4 +1,4 @@
-package com.dcava.dcava_backend.dto;
+package com.dcava.dcava_backend.dto.user;
 
 import com.dcava.dcava_backend.model.UserAdmin;
 

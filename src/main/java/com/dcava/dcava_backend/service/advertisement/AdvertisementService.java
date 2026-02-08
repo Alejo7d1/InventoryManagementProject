@@ -1,4 +1,4 @@
-package com.dcava.dcava_backend.service;
+package com.dcava.dcava_backend.service.advertisement;
 
 import com.dcava.dcava_backend.config.AppProperties;
 import com.dcava.dcava_backend.model.Advertisement;

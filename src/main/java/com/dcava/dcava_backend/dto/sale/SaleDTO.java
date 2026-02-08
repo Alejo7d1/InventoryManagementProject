@@ -1,5 +1,6 @@
-package com.dcava.dcava_backend.dto;
+package com.dcava.dcava_backend.dto.sale;
 
+import com.dcava.dcava_backend.dto.user.UserAdminDTO;
 import com.dcava.dcava_backend.model.Sale;
 import java.time.LocalDateTime;
 import java.util.List;

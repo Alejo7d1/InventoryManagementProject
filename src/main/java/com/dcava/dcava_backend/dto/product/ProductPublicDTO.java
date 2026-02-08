@@ -1,26 +1,24 @@
-package com.dcava.dcava_backend.dto;
+package com.dcava.dcava_backend.dto.product;
 
 import com.dcava.dcava_backend.model.Product;
 import java.time.LocalDateTime;
 
-public class ProductAdminDTO {
+public class ProductPublicDTO {
     private int id;
     private String name;
     private String description;
     private double price;
-    private double cost; // visible solo para admin
     private String category;
     private String status;
     private int stock;
     private String compatibility;
     private LocalDateTime createdAt;
 
-    public ProductAdminDTO(Product product) {
+    public ProductPublicDTO(Product product) {
         this.id = product.getId();
         this.name = product.getName();
         this.description = product.getDescription();
         this.price = product.getPrice();
-        this.cost = product.getCost();
         this.category = product.getCategory();
         this.status = product.getStatus();
         this.stock = product.getStock();
@@ -45,10 +43,6 @@ public class ProductAdminDTO {
         return price;
     }
 
-    public double getCost() {
-        return cost;
-    }
-
     public String getCategory() {
         return category;
     }
@@ -69,4 +63,3 @@ public class ProductAdminDTO {
         return createdAt;
     }
 }
-

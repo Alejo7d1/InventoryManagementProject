@@ -1,6 +1,6 @@
-package com.dcava.dcava_backend.service;
+package com.dcava.dcava_backend.service.product;
 
-import com.dcava.dcava_backend.dto.ProductPublicDTO;
+import com.dcava.dcava_backend.dto.product.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.repository.ProductImageRepository;

@@ -1,6 +1,6 @@
 package com.dcava.dcava_backend.security;
 
-import com.dcava.dcava_backend.service.UserAdminService;
+import com.dcava.dcava_backend.service.user.UserAdminService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;

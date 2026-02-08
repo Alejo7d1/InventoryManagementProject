@@ -1,8 +1,8 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.product;
 
-import com.dcava.dcava_backend.dto.ProductImageDTO;
+import com.dcava.dcava_backend.dto.product.ProductImageDTO;
 import com.dcava.dcava_backend.model.ProductImage;
-import com.dcava.dcava_backend.service.ProductImageService;
+import com.dcava.dcava_backend.service.product.ProductImageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

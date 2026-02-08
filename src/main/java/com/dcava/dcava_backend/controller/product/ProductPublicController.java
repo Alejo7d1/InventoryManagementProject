@@ -1,8 +1,8 @@
-package com.dcava.dcava_backend.controller;
+package com.dcava.dcava_backend.controller.product;
 
-import com.dcava.dcava_backend.dto.ProductPublicDTO;
+import com.dcava.dcava_backend.dto.product.ProductPublicDTO;
 import com.dcava.dcava_backend.model.Product;
-import com.dcava.dcava_backend.service.ProductService;
+import com.dcava.dcava_backend.service.product.ProductService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
