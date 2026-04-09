@@ -4,6 +4,7 @@ import com.dcava.dcava_backend.dto.sale.SaleDTO;
 import com.dcava.dcava_backend.model.Sale;
 import com.dcava.dcava_backend.service.sale.SaleService;
 import com.dcava.dcava_backend.service.user.UserAdminService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@SecurityRequirement(name = "bearerAuth")
 public class UserAdminController {
 
     private final UserAdminService userService;

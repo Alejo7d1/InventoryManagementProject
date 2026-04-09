@@ -7,6 +7,7 @@ import com.dcava.dcava_backend.dto.category.CategoryView;
 import com.dcava.dcava_backend.service.category.CategoryAdminService;
 import com.dcava.dcava_backend.service.category.CategoryImageService;
 import com.dcava.dcava_backend.service.category.CategoryService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin/categories")
+@SecurityRequirement(name = "bearerAuth")
 public class CategoryAdminController {
 
     private final CategoryImageService categoryImageService;

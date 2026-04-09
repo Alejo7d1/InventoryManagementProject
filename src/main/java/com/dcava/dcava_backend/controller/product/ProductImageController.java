@@ -3,6 +3,7 @@ package com.dcava.dcava_backend.controller.product;
 import com.dcava.dcava_backend.dto.product.ProductImageDTO;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.service.product.ProductImageService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +30,7 @@ public class ProductImageController {
 
     //restricted: upload imagen (form-data) -> productId and file
     @PostMapping(value = "/admin/products/images", consumes = "multipart/form-data")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> uploadImage(@RequestParam("productId") Integer productId,
                                          @RequestParam("file") MultipartFile file) {
         try {
@@ -43,6 +45,7 @@ public class ProductImageController {
 
     // restricted: delete by id
     @DeleteMapping("/admin/products/images/{imageId}")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> deleteImage(@PathVariable Integer imageId) {
         if (imageService.deleteImage(imageId)) {
             return ResponseEntity.ok("Image deleted");

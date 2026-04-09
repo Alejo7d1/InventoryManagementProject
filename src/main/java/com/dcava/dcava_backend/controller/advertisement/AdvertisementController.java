@@ -3,8 +3,11 @@ package com.dcava.dcava_backend.controller.advertisement;
 import com.dcava.dcava_backend.model.Advertisement;
 import com.dcava.dcava_backend.model.Advertisement.AdType;
 import com.dcava.dcava_backend.service.advertisement.AdvertisementService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -76,12 +79,16 @@ public class AdvertisementController {
     }
 
     // Private endpoints
-
-    @PostMapping("/admin/advertisements/upload")
+    @PostMapping(
+            value = "/admin/advertisements/upload",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @Operation(summary = "Create ad", description = "Firebase Token is required")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Map<String, Object>> uploadAdvertisement(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
-            @RequestParam("adType") String adTypeStr,
+            @RequestParam("adType") AdType adType,
             @RequestParam(value = "linkUrl", required = false) String linkUrl
     ) {
         Map<String, Object> response = new HashMap<>();
@@ -106,15 +113,6 @@ public class AdvertisementController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            AdType adType;
-            try {
-                adType = AdType.valueOf(adTypeStr.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                response.put("success", false);
-                response.put("message", "Invalid ad type: " + adTypeStr);
-                return ResponseEntity.badRequest().body(response);
-            }
-
             Advertisement advertisement =
                     advertisementService.createAdvertisement(file, title, adType, linkUrl);
 
@@ -136,6 +134,8 @@ public class AdvertisementController {
 
 
     @DeleteMapping("/admin/advertisements/{id}")
+    @Operation(summary = "Delete ad", description = "Firebase Token is required")
+    @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Map<String, Object>> deleteAdvertisement(@PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
 
