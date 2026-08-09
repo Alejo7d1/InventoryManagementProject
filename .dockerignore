@@ -1,0 +1,18 @@
+# Excluido del contexto de build de Docker (seguridad y tamaño)
+.env
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+HELP.md
+LICENSE
+README.md
+
+# Scripts de inicialización de la BD: NO se copian dentro de la imagen
+# del backend. Docker Compose los monta por volumen en el contenedor
+# MySQL (/docker-entrypoint-initdb.d/), así que no necesitan estar en el
+# contexto de build. Si algún día se montan desde la imagen (build de una
+# imagen MySQL personalizada), habría que quitarlos de aquí.
+01-create-users.sh
+02-init.sql

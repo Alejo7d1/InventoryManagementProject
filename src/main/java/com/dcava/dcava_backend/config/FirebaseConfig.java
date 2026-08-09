@@ -1,5 +1,6 @@
 package com.dcava.dcava_backend.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -9,7 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 
 import java.io.*;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Configuration
 public class FirebaseConfig {
@@ -19,6 +23,36 @@ public class FirebaseConfig {
 
     @Value("${app.firebase.credentials-json:}")
     private String credentialsJson;
+
+    @Value("${app.firebase.type:service_account}")
+    private String type;
+
+    @Value("${app.firebase.project-id:}")
+    private String projectId;
+
+    @Value("${app.firebase.private-key-id:}")
+    private String privateKeyId;
+
+    @Value("${app.firebase.private-key:}")
+    private String privateKey;
+
+    @Value("${app.firebase.client-email:}")
+    private String clientEmail;
+
+    @Value("${app.firebase.client-id:}")
+    private String clientId;
+
+    @Value("${app.firebase.auth-uri:https://accounts.google.com/o/oauth2/auth}")
+    private String authUri;
+
+    @Value("${app.firebase.token-uri:https://oauth2.googleapis.com/token}")
+    private String tokenUri;
+
+    @Value("${app.firebase.auth-provider-cert-url:https://www.googleapis.com/oauth2/v1/certs}")
+    private String authProviderCertUrl;
+
+    @Value("${app.firebase.universe-domain:googleapis.com}")
+    private String universeDomain;
 
     @PostConstruct
     public void initFirebase() {
@@ -33,8 +67,13 @@ public class FirebaseConfig {
                 try (InputStream is = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8))) {
                     credentials = GoogleCredentials.fromStream(is);
                 }
+            } else if (projectId != null && !projectId.isBlank() && privateKey != null && !privateKey.isBlank()) {
+                String jsonConstructed = buildServiceAccountJson();
+                try (InputStream is = new ByteArrayInputStream(jsonConstructed.getBytes(StandardCharsets.UTF_8))) {
+                    credentials = GoogleCredentials.fromStream(is);
+                }
             } else {
-                throw new IllegalStateException("Firebase credentials not provided. Set FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON.");
+                throw new IllegalStateException("Firebase credentials not provided. Configure .env variables or set credentials path.");
             }
 
             FirebaseOptions options = FirebaseOptions.builder()
@@ -48,5 +87,31 @@ public class FirebaseConfig {
             throw new IllegalStateException("Failed to initialize Firebase", e);
         }
     }
-}
 
+    private String buildServiceAccountJson() throws Exception {
+        Map<String, String> jsonMap = new LinkedHashMap<>();
+
+        String cleanPrivateKey = privateKey.trim();
+        if (cleanPrivateKey.startsWith("\"") && cleanPrivateKey.endsWith("\"")) {
+            cleanPrivateKey = cleanPrivateKey.substring(1, cleanPrivateKey.length() - 1);
+        }
+
+        cleanPrivateKey = cleanPrivateKey.replace("\\n", "\n");
+
+        jsonMap.put("type", type);
+        jsonMap.put("project_id", projectId);
+        jsonMap.put("private_key_id", privateKeyId);
+        jsonMap.put("private_key", cleanPrivateKey);
+        jsonMap.put("client_email", clientEmail);
+        jsonMap.put("client_id", clientId);
+        jsonMap.put("auth_uri", authUri);
+        jsonMap.put("token_uri", tokenUri);
+        jsonMap.put("auth_provider_x509_cert_url", authProviderCertUrl);
+        jsonMap.put("client_x509_cert_url", "https://www.googleapis.com/robot/v1/metadata/x509/"
+                + URLEncoder.encode(clientEmail, StandardCharsets.UTF_8));
+        jsonMap.put("universe_domain", universeDomain);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writeValueAsString(jsonMap);
+    }
+}

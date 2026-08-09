@@ -10,9 +10,7 @@ public class AppProperties {
 
     private List<String> frontendUrls;
     private R2 r2;
-    private Firebase firebase;
 
-    // Getters y Setters existentes
     public List<String> getFrontendUrls() {
         return frontendUrls;
     }
@@ -29,15 +27,6 @@ public class AppProperties {
         this.r2 = r2;
     }
 
-    public Firebase getFirebase() {
-        return firebase;
-    }
-
-    public void setFirebase(Firebase firebase) {
-        this.firebase = firebase;
-    }
-
-    // ---------- Inner class for R2 (existente) ----------
     public static class R2 {
         private String endpoint;
         private String accessKey;
@@ -61,17 +50,5 @@ public class AppProperties {
         public void setPublicUrl(String publicUrl) { this.publicUrl = publicUrl; }
     }
 
-    // ---------- UPDATED: Inner class for Firebase ----------
-    public static class Firebase {
-        private String credentialsJson;  // Cambiado de credentialsPath a credentialsJson
-
-        public String getCredentialsJson() {
-            return credentialsJson;
-        }
-
-        public void setCredentialsJson(String credentialsJson) {
-            this.credentialsJson = credentialsJson;
-        }
-    }
 }
 
