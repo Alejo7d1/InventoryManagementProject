@@ -1,0 +1,79 @@
+# ============================================================
+# DCAVA Backend - Docker Compose
+# Levanta el backend Java (Spring Boot) junto a MySQL 8
+# con persistencia de datos en volúmenes Docker.
+#
+# Uso:
+#   docker compose up -d --build
+#   docker compose down        # detiene sin borrar los datos
+#   docker compose down -v     # detiene Y BORRA los datos (cuidado)
+# ============================================================
+
+services:
+
+  # ---------- Base de datos MySQL ----------
+  mysql:
+    image: mysql:8.0
+    container_name: dcava-mysql
+    restart: unless-stopped
+    environment:
+      # El archivo .env del proyecto aporta estos valores.
+      # Las variables APP_DB_* se pasan tal cual para que el script
+      # 01-create-users.sh las encuentre dentro del contenedor.
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${APP_DB_USER}
+      MYSQL_PASSWORD: ${APP_DB_PASSWORD}
+      APP_DB_USER: ${APP_DB_USER}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    ports:
+      # Expuesto en 3307 para no chocar con un MySQL local en 3306.
+      # Si no necesitas acceder desde el host, elimina esta sección.
+      - "3307:3306"
+    volumes:
+      # Volumen con nombre: los datos sobreviven a "docker compose down",
+      # a la recreación del contenedor y a las actualizaciones de imagen.
+      - mysql-data:/var/lib/mysql
+      # Inicialización automática (solo la PRIMERA vez que se crea el volumen,
+      # cuando /var/lib/mysql está vacío). Se ejecutan en orden alfabético:
+      # 1) 01-create-users.sh -> crea la base de datos y el usuario de la app
+      - ./01-create-users.sh:/docker-entrypoint-initdb.d/01-create-users.sh:ro
+      # 2) 02-init.sql -> importa el esquema (tablas, índices, claves foráneas)
+      - ./02-init.sql:/docker-entrypoint-initdb.d/02-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------- Backend Java (Spring Boot) ----------
+  backend:
+    build: .
+    container_name: dcava-backend
+    restart: unless-stopped
+    env_file:
+      # Hereda TODAS las variables del .env (Firebase, R2, FRONTEND_URLS...)
+      - .env
+    environment:
+      # Se sobreescriben las variables de conexión para apuntar al
+      # servicio "mysql" dentro de la red Docker.
+      DATABASE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      DATABASE_USER: ${APP_DB_USER}
+      DATABASE_PASSWORD: ${APP_DB_PASSWORD}
+      PORT: ${APP_PORT}
+    ports:
+      - "${APP_PORT}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      # Persistencia opcional para archivos subidos localmente
+      - uploads-data:/app/uploads
+
+# ---------- Volúmenes persistentes ----------
+volumes:
+  mysql-data:
+    name: dcava_mysql_data
+  uploads-data:
+    name: dcava_uploads_data

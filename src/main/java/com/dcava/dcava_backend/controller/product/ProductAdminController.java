@@ -4,6 +4,7 @@ import com.dcava.dcava_backend.dto.product.ProductAdminDTO;
 import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.service.product.ProductImageService;
 import com.dcava.dcava_backend.service.product.ProductService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/products")
+@SecurityRequirement(name = "bearerAuth")
 public class ProductAdminController {
 
     private final ProductService productService;
