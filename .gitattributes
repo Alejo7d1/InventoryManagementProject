@@ -1,2 +1,9 @@
+# Scripts y archivos que se ejecutan dentro de contenedores Linux
+# deben usar finales de línea LF (Unix), o los scripts fallan en Docker.
+*.sh text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
 /mvnw text eol=lf
 *.cmd text eol=crlf
