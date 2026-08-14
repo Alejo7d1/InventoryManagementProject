@@ -5,6 +5,8 @@ Backend del sistema DCava desarrollado con Spring Boot. Proporciona una API REST
 
 El sistema está diseñado para integrarse con el frontend oficial de DCavalier, permitiendo la exposición pública de productos y la gestión interna mediante un único usuario administrador autenticado con Firebase.
 
+> **Documentación completa de la API:** consulta [`docs/API.md`](docs/API.md) para la referencia detallada de todos los endpoints, objetos, autenticación y ejemplos.
+
 ## Características principales
 - CRUD de productos, categorías y anuncios
 - Gestión de ventas y cálculo de ganancias
@@ -47,6 +49,9 @@ docker compose ps
 docker compose logs -f backend
 ```
 4. La API queda disponible en `http://localhost:8080` (o el puerto indicado por `APP_PORT` en el `.env`).
+5. Documentación interactiva (Swagger UI): `http://localhost:8080/swagger-ui.html`
+   - Esquema OpenAPI (JSON): `http://localhost:8080/v3/api-docs`
+   - Referencia detallada en Markdown: [`docs/API.md`](docs/API.md)
 
 ### Persistencia de datos
 Los datos se guardan en volúmenes con nombre, por lo que **sobreviven** a la destrucción o actualización de los contenedores:
