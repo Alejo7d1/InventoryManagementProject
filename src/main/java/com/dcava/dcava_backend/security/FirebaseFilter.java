@@ -32,7 +32,8 @@ public class FirebaseFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // Ignore public endpoints + Swagger
-        if (path.startsWith("/products") ||
+        if (path.startsWith("/health") ||
+                path.startsWith("/products") ||
                 path.startsWith("/categories") ||
                 path.startsWith("/advertisements") ||
                 path.startsWith("/uploads") ||
