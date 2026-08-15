@@ -951,6 +951,8 @@ flowchart TD
 | `R2_PUBLIC_URL` | URL pública de R2 |
 | `LOG_DIR` | Directorio de los archivos de log (producción, por defecto `logs`) |
 | `LOG_FILE` | Nombre base del archivo de log (por defecto `dcava-backend`) |
+| `GRAFANA_ADMIN_USER` | Usuario administrador de Grafana (por defecto `admin`) |
+| `GRAFANA_ADMIN_PASSWORD` | Contraseña de Grafana (por defecto `admin` — **cambiarla en producción**) |
 
 ---
 
@@ -1075,6 +1077,66 @@ docker logs dcava-backend | jq -r 'select(.requestId=="<uuid>")'
 # Logs de un usuario concreto
 docker logs dcava-backend | jq -r 'select(.uid=="<firebase-uid>")'
 ```
+
+---
+
+## 13. Observabilidad: Loki + Promtail + Grafana
+
+El `docker-compose.yml` incluye tres servicios de observabilidad que recogen los logs JSON del backend y los muestran en una interfaz web (Grafana):
+
+| Servicio | Imagen | Función | Memoria (límite) |
+|---|---|---|---|
+| `promtail` | `grafana/promtail:2.9.8` | Lee los logs del contenedor `dcava-backend` (vía socket de Docker) y los envía a Loki | 64 MB |
+| `loki` | `grafana/loki:2.9.8` | Base de datos de logs con retención de 30 días | 256 MB |
+| `grafana` | `grafana/grafana:11.2.0` | Interfaz web (dashboards y explorador de logs) | 160 MB |
+
+### 13.1 Acceso
+
+- **Local/Directo:** `http://IP-DEL-VPS:3002` (Grafana se publica en `127.0.0.1:3002`, solo localhost).
+- **Recomendado:** subdominio `https://logs.dcavalier.com` con un `server block` de nginx que haga `proxy_pass http://127.0.0.1:3002` (mismo patrón que el bloque `backend`, pero con las cabeceras `Upgrade`/`Connection: upgrade` y `proxy_read_timeout 300s` por los WebSockets de Grafana).
+- **Credenciales iniciales:** las variables `GRAFANA_ADMIN_USER` y `GRAFANA_ADMIN_PASSWORD` del `.env` (por defecto `admin`/`admin` — **cambiarlas en producción**).
+
+### 13.2 Configuración provisionada
+
+| Archivo | Contenido |
+|---|---|
+| `infra/loki/loki-config.yml` | Loki single-binary con almacenamiento local y retención de 30 días (`retention_period: 720h`) |
+| `infra/promtail/promtail-config.yml` | Descubre el contenedor `dcava-backend`, desestructura el JSON y etiqueta por `level` y `service` |
+| `infra/grafana/provisioning/datasources/loki.yml` | Datasource Loki (`uid: loki`) creado automáticamente |
+| `infra/grafana/provisioning/dashboards/dashboards.yml` | Carga automática de dashboards desde `./infra/grafana/dashboards` |
+| `infra/grafana/dashboards/dcava-backend-logs.json` | Dashboard **"DCAVA Backend - Logs"**: volumen de logs por nivel y panel de logs JSON con buscador |
+
+### 13.3 Qué etiquetas se indexan en Loki
+
+Solo se etiquetan campos de **baja cardinalidad** (`container`, `level`, `service`) para mantener el índice pequeño en el VPS. Los campos de alta cardinalidad (`requestId`, `uid`, `clientIp`, `method`, `path`) **no se etiquetan**: se conservan dentro del JSON de la línea y se filtran con búsqueda de texto.
+
+**Ejemplos de consultas en el explorador de Loki:**
+
+```logql
+# Solo errores y advertencias
+{container="dcava-backend"} |= "ERROR"
+
+# Todas las líneas de una petición concreta (por requestId)
+{container="dcava-backend"} |= "<requestId>"
+
+# Logs de un usuario concreto (por uid de Firebase)
+{container="dcava-backend"} |= "<firebase-uid>"
+```
+
+### 13.4 Despliegue
+
+```bash
+# Levantar (crea dcava-loki, dcava-promtail y dcava-grafana)
+docker compose up -d
+
+# Verificar que los tres arrancaron
+docker compose ps
+
+# Comprobar que promtail envía logs a Loki (debe aparecer "target" del backend)
+docker logs -f dcava-promtail
+```
+
+> **Nota:** la retención de 30 días existe en dos capas: Logback (archivos del volumen `dcava_logs_data`) y Loki (`retention_period: 720h`). El driver de Docker (`docker logs`) solo conserva ~30 MB como fallback de corto plazo.
 
 ---
 

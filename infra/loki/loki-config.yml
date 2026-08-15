@@ -1,0 +1,40 @@
+# Configuración de Loki (single binary) optimizada para VPS 2GB RAM.
+# - Almacenamiento local en filesystem (sin S3 ni boltdb externo).
+# - Retención de 30 días, consistente con la retención de Logback en el backend.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2022-01-01
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Retención de 30 días (720 horas)
+  retention_period: 720h
+  # Evita consultas que traigan demasiadas líneas al explorador
+  max_entries_limit_per_query: 5000
+
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+  retention_enabled: true
+

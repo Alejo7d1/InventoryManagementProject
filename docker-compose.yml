@@ -77,6 +77,73 @@ services:
       - uploads-data:/app/uploads
       - logs-data:/app/logs
 
+  # ---------- Observabilidad: Loki + Promtail + Grafana ----------
+  # Recogen los logs JSON del backend y los muestran en Grafana.
+  # Acceso: http://127.0.0.1:3002 (proxy nginx en el VPS) o http://IP:3002
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: dcava-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: dcava-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./infra/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      # Acceso al socket de Docker y a los archivos de log de los contenedores
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 32M
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: dcava-grafana
+    restart: unless-stopped
+    environment:
+      # Detrás del proxy nginx (logs.dcavalier.com)
+      GF_SERVER_DOMAIN: logs.dcavalier.com
+      GF_SERVER_ROOT_URL: https://logs.dcavalier.com
+      # Credenciales iniciales (cámbialas en el .env)
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      # 3002 en el host (evita choques con el frontend/backend). Solo localhost.
+      - "127.0.0.1:3002:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - loki
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+        reservations:
+          memory: 64M
+
 # ---------- Volúmenes persistentes ----------
 volumes:
   mysql-data:
@@ -85,3 +152,7 @@ volumes:
     name: dcava_uploads_data
   logs-data:
     name: dcava_logs_data
+  loki-data:
+    name: dcava_loki_data
+  grafana-data:
+    name: dcava_grafana_data
