@@ -5,6 +5,8 @@ import com.dcava.dcava_backend.model.Product;
 import com.dcava.dcava_backend.model.ProductImage;
 import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +21,8 @@ import java.util.List;
 
 @Service
 public class ProductImageService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductImageService.class);
 
     private final ProductImageRepository imageRepository;
     private final ProductRepository productRepository;
@@ -110,8 +114,13 @@ public class ProductImageService {
                     .build();
 
             r2Client.putObject(request, RequestBody.fromBytes(bytes));
+            log.info("Product image uploaded to R2: imageId={} productId={} key={} sizeBytes={}",
+                    imageId, productId, r2Key, bytes.length);
 
         } catch (S3Exception e) {
+            log.error("R2 upload failed: imageId={} productId={} bucket={} key={} error={}",
+                    imageId, productId, appProperties.getR2().getBucket(), r2Key,
+                    e.awsErrorDetails().errorMessage(), e);
             // if failed, delete the temp register
             imageRepository.delete(savedImage);
             throw new RuntimeException("Error uploading image to R2: " + e.awsErrorDetails().errorMessage(), e);
@@ -156,14 +165,17 @@ public class ProductImageService {
             }
 
             // delete from R2
+            String key = image.getFilePath().startsWith("/") ? image.getFilePath().substring(1) : image.getFilePath();
             try {
-
-                String key = image.getFilePath().startsWith("/") ? image.getFilePath().substring(1) : image.getFilePath();
                 r2Client.deleteObject(DeleteObjectRequest.builder()
                         .bucket(appProperties.getR2().getBucket())
                         .key(key)
                         .build());
+                log.info("Product image deleted from R2: imageId={} key={}", imageId, key);
             } catch (S3Exception e) {
+                log.error("R2 delete failed: imageId={} bucket={} key={} error={}",
+                        imageId, appProperties.getR2().getBucket(), key,
+                        e.awsErrorDetails().errorMessage(), e);
                 throw new RuntimeException("Error deleting image from R2: " + e.awsErrorDetails().errorMessage(), e);
             }
 

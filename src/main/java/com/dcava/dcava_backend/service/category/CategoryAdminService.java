@@ -6,6 +6,8 @@ import com.dcava.dcava_backend.dto.category.CategoryUpdateRequest;
 import com.dcava.dcava_backend.dto.category.CategoryView;
 import com.dcava.dcava_backend.model.Category;
 import com.dcava.dcava_backend.repository.CategoryRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,8 @@ import java.util.Locale;
 
 @Service
 public class CategoryAdminService {
+
+    private static final Logger log = LoggerFactory.getLogger(CategoryAdminService.class);
 
     private final CategoryRepository repo;
 
@@ -44,6 +48,7 @@ public class CategoryAdminService {
         c.setStatus("active");
 
         Category saved = repo.save(c);
+        log.info("Category created: id={} name={} slug={}", saved.getId(), saved.getName(), saved.getSlug());
         return toView(saved);
     }
 
@@ -72,7 +77,10 @@ public class CategoryAdminService {
         if (req.getImageUrl() != null) c.setImageUrl(req.getImageUrl());
         if (req.getStatus() != null && !req.getStatus().trim().isBlank()) c.setStatus(req.getStatus().trim());
 
-        return toView(repo.save(c));
+        Category saved = repo.save(c);
+        log.info("Category updated: id={} name={} slug={} status={}",
+                saved.getId(), saved.getName(), saved.getSlug(), saved.getStatus());
+        return toView(saved);
     }
 
     private CategoryView toView(Category c) {

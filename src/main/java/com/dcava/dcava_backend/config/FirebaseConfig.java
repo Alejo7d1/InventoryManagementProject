@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,6 +19,8 @@ import java.util.Map;
 
 @Configuration
 public class FirebaseConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
 
     @Value("${app.firebase.credentials-path:}")
     private String credentialsPath;
@@ -83,7 +87,12 @@ public class FirebaseConfig {
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
             }
+            // Solo se loguea el projectId (no es secreto); NUNCA se loguea la private key
+            log.info("Firebase initialized: projectId={} clientEmail={}",
+                    projectId != null ? projectId : "unknown",
+                    clientEmail != null ? clientEmail : "unknown");
         } catch (Exception e) {
+            log.error("Failed to initialize Firebase (projectId={})", projectId, e);
             throw new IllegalStateException("Failed to initialize Firebase", e);
         }
     }

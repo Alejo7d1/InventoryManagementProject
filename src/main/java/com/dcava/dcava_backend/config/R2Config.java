@@ -1,5 +1,7 @@
 package com.dcava.dcava_backend.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -13,11 +15,13 @@ import java.net.URI;
 @Configuration
 public class R2Config {
 
+    private static final Logger log = LoggerFactory.getLogger(R2Config.class);
+
     @Bean
     public S3Client r2Client(AppProperties properties) {
         AppProperties.R2 r2 = properties.getR2();
 
-        return S3Client.builder()
+        S3Client client = S3Client.builder()
                 .endpointOverride(URI.create(r2.getEndpoint()))
                 .credentialsProvider(
                         StaticCredentialsProvider.create(
@@ -30,7 +34,8 @@ public class R2Config {
                 .region(Region.US_EAST_1)
                 .serviceConfiguration(b -> b.chunkedEncodingEnabled(false))
                 .build();
+
+        log.info("R2 client configured: bucket={} endpoint={}", r2.getBucket(), r2.getEndpoint());
+        return client;
     }
 }
-
-

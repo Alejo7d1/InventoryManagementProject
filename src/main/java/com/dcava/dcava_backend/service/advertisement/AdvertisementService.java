@@ -4,6 +4,8 @@ import com.dcava.dcava_backend.config.AppProperties;
 import com.dcava.dcava_backend.model.Advertisement;
 import com.dcava.dcava_backend.model.Advertisement.AdType;
 import com.dcava.dcava_backend.repository.AdvertisementRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 @Service
 public class AdvertisementService {
+
+    private static final Logger log = LoggerFactory.getLogger(AdvertisementService.class);
 
     private final AdvertisementRepository advertisementRepository;
     private final S3Client r2Client;
@@ -76,7 +80,12 @@ public class AdvertisementService {
                             .build(),
                     RequestBody.fromBytes(bytes)
             );
+            log.info("Advertisement image uploaded to R2: key={} sizeBytes={} type={}",
+                    r2Key, bytes.length, adType);
         } catch (S3Exception e) {
+            log.error("R2 upload failed: bucket={} key={} error={}",
+                    appProperties.getR2().getBucket(), r2Key,
+                    e.awsErrorDetails().errorMessage(), e);
             throw new RuntimeException(
                     "Error uploading advertisement to R2: " +
                             e.awsErrorDetails().errorMessage(),
@@ -90,7 +99,9 @@ public class AdvertisementService {
         ad.setFilePath("/" + r2Key);
         ad.setLinkUrl(normalizedLink); // puede ser null
 
-        return advertisementRepository.save(ad);
+        Advertisement saved = advertisementRepository.save(ad);
+        log.info("Advertisement created: id={} title={} type={}", saved.getId(), title, adType);
+        return saved;
     }
 
     private String normalizeOptionalUrl(String linkUrl) {
@@ -179,7 +190,11 @@ public class AdvertisementService {
                             .key(key)
                             .build()
             );
+            log.info("Advertisement deleted from R2: id={} key={}", id, key);
         } catch (S3Exception e) {
+            log.error("R2 delete failed: bucket={} key={} error={}",
+                    appProperties.getR2().getBucket(), ad.getFilePath(),
+                    e.awsErrorDetails().errorMessage(), e);
             throw new RuntimeException(
                     "Error deleting advertisement from R2: " +
                             e.awsErrorDetails().errorMessage(),
@@ -187,6 +202,7 @@ public class AdvertisementService {
             );
         }
         advertisementRepository.delete(ad);
+        log.info("Advertisement deleted: id={} title={}", id, ad.getTitle());
     }
 
     private String getString(Advertisement ad) {

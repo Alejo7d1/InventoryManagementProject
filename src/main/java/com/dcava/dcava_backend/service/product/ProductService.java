@@ -7,6 +7,8 @@ import com.dcava.dcava_backend.repository.ProductImageRepository;
 import com.dcava.dcava_backend.repository.ProductRepository;
 import com.dcava.dcava_backend.repository.SaleRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
     private final SaleRepository saleRepository;
     private final ProductRepository productRepository;
     int pageSize = 20;
@@ -118,6 +121,8 @@ public class ProductService {
     @Transactional
     public Product save(Product product, List<MultipartFile> images) throws IOException {
         Product savedProduct = productRepo.save(product);
+        log.info("Product created: id={} name={} price={} stock={}",
+                savedProduct.getId(), savedProduct.getName(), savedProduct.getPrice(), savedProduct.getStock());
 
         if (images != null && !images.isEmpty()) {
             for (MultipartFile file : images) {
@@ -140,7 +145,9 @@ public class ProductService {
             p.setCompatibility(updated.getCompatibility());
             p.setCategory(updated.getCategory());
 
-            return productRepo.save(p);
+            Product saved = productRepo.save(p);
+            log.info("Product updated: id={} name={}", saved.getId(), saved.getName());
+            return saved;
         }).orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
@@ -148,6 +155,7 @@ public class ProductService {
         return productRepo.findById(id).map(p -> {
             p.setStatus("active");
             productRepo.save(p);
+            log.info("Product restored: id={} name={}", p.getId(), p.getName());
             return true;
         }).orElse(false);
     }
@@ -195,6 +203,7 @@ public class ProductService {
 
             product.setStatus("inactive");
             productRepo.save(product);
+            log.info("Product deactivated: id={} name={}", product.getId(), product.getName());
             return true;
         }).orElse(false);
     }
@@ -203,6 +212,7 @@ public class ProductService {
         return productRepo.findById(id).map(p -> {
             p.setStock(quantity);
             productRepo.save(p);
+            log.info("Product stock updated: id={} newStock={}", p.getId(), quantity);
             return true;
         }).orElse(false);
     }

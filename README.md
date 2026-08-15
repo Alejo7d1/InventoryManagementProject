@@ -62,7 +62,7 @@ Los datos se guardan en volúmenes con nombre, por lo que **sobreviven** a la de
 ```bash
 docker compose down          # Detiene los contenedores (conserva los datos)
 docker compose up -d --build # Reconstruye y vuelve a levantar (conserva los datos)
-docker compose down -v       # ¡OJO! Elimina los contenedores Y los volúmenes (pierdes los datos)
+docker compose down -v       # Elimina los contenedores Y los volúmenes (borrado permanente)
 ```
 
 ### Acceso a MySQL desde el host

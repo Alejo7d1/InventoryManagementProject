@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging configuration for DCAVA Backend.
+
+  - No active profile (deploy/Docker) or "prod"/"staging": JSON logs to stdout,
+    ideal for docker logs, Loki, CloudWatch, etc. Each line includes MDC fields:
+    requestId, uid, clientIp, method and path.
+  - "local" or "dev" profile: human-readable console logs with the same fields.
+
+  Levels by package:
+  - com.dcava               : INFO (business audit)
+  - com.zaxxer.hikari       : WARN (connection leaks are logged at ERROR)
+  - org.hibernate.SQL_SLOW  : WARN (slow queries > 2000 ms)
+  - software.amazon.awssdk  : WARN (avoids S3 SDK noise)
+  - org.springframework     : WARN (avoids Spring/Security noise)
+-->
+<configuration>
+
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="dcava-backend"/>
+
+    <!-- Log directory and base filename (configurable via env: LOG_DIR, LOG_FILE) -->
+    <property name="LOG_DIR" value="${LOG_DIR:-logs}"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-dcava-backend}"/>
+
+    <!-- ================= Readable console (local/dev profile) ================= -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{40} - requestId=%X{requestId:-} uid=%X{uid:-} ip=%X{clientIp:-} | %msg%n%xThrowable</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ================= JSON (production / default) ================= -->
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${APP_NAME}"}</customFields>
+            <includeMdc>false</includeMdc>
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <includeMdcKeyName>uid</includeMdcKeyName>
+            <includeMdcKeyName>clientIp</includeMdcKeyName>
+            <includeMdcKeyName>method</includeMdcKeyName>
+            <includeMdcKeyName>path</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!--
+      JSON file with daily rotation and 30-day retention:
+      - maxHistory=30    : deletes files older than 30 days
+      - totalSizeCap=1GB : max total disk space
+      - maxFileSize=100MB: splits daily files larger than 100 MB
+      - .gz              : gzip compression on rotation (~85% less space)
+    -->
+    <appender name="FILE_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${LOG_FILE}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${LOG_FILE}.%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${APP_NAME}"}</customFields>
+            <includeMdc>false</includeMdc>
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <includeMdcKeyName>uid</includeMdcKeyName>
+            <includeMdcKeyName>clientIp</includeMdcKeyName>
+            <includeMdcKeyName>method</includeMdcKeyName>
+            <includeMdcKeyName>path</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- ================= Profile selection ================= -->
+    <springProfile name="local,dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- default is active when no profile is set (current deploy case) -->
+    <springProfile name="default,prod,staging">
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+            <appender-ref ref="FILE_JSON"/>
+        </root>
+    </springProfile>
+
+    <!-- ================= Specific loggers ================= -->
+    <logger name="com.dcava" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL_SLOW" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="software.amazon.awssdk" level="WARN"/>
+    <logger name="com.google.firebase" level="INFO"/>
+
+</configuration>

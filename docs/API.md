@@ -12,6 +12,7 @@
 | **Formato de datos** | JSON (`application/json`) |
 | **Autenticación** | Firebase Authentication (Bearer JWT) |
 | **Almacenamiento de archivos** | Cloudflare R2 (S3-compatible) |
+| **Logging** | JSON estructurado (stdout + archivo) con retención de 30 días |
 | **URL base** | `http://localhost:8080` (o el puerto definido por `APP_PORT`) |
 
 > **Nota:** El proyecto incluye Swagger UI. Una vez en ejecución, la documentación interactiva está disponible en:
@@ -948,6 +949,8 @@ flowchart TD
 | `R2_SECRET_KEY` | Clave secreta R2 |
 | `R2_BUCKET` | Nombre del bucket R2 |
 | `R2_PUBLIC_URL` | URL pública de R2 |
+| `LOG_DIR` | Directorio de los archivos de log (producción, por defecto `logs`) |
+| `LOG_FILE` | Nombre base del archivo de log (por defecto `dcava-backend`) |
 
 ---
 
@@ -987,6 +990,90 @@ Content-Type: application/json
 
 ```
 GET http://localhost:8080/sales?start_date=2026-08-01T00:00:00&end_date=2026-08-31T23:59:59
+```
+
+---
+
+## 12. Logging y Observabilidad
+
+### 12.1 Formato de logs
+
+- **Producción** (sin perfil activo, o perfil `prod`/`staging`): cada línea es un objeto **JSON** escrito a **stdout** (`docker logs dcava-backend`) y a un **archivo rotado** en disco.
+- **Desarrollo** (perfil `local`/`dev`): consola legible con campos `requestId`, `uid`, `ip`, `method` y `path`.
+
+Los logs JSON se pueden procesar con herramientas como Loki, CloudWatch o Grafana, filtrando por campos estructurados (`level`, `requestId`, `uid`, `status`, `durationMs`, etc.).
+
+### 12.2 Correlación de peticiones (`X-Request-Id`)
+
+Cada petición genera un `requestId` (UUID) que:
+
+1. Se devuelve en el header de respuesta **`X-Request-Id`**.
+2. Se propaga a todos los logs de esa petición (autenticación, negocio, errores).
+3. Permite rastrear un fallo de punta a punta: `docker logs dcava-backend | jq -r 'select(.requestId=="<uuid>")'`.
+
+Además, cada log incluye `uid` (usuario autenticado), `clientIp`, `method` y `path`.
+
+### 12.3 Eventos logueados
+
+| Nivel | Evento |
+|---|---|
+| `INFO` | Log de acceso por petición (método, path, status, duración, uid, IP) |
+| `INFO` | Auditoría: creación/actualización de productos, categorías, anuncios, ventas y stock |
+| `INFO` | Operaciones en R2 (upload/delete con bucket y key) |
+| `INFO` | Inicialización de Firebase y del cliente R2 |
+| `WARN` | 4xx, peticiones lentas (> 2 s), tokens ausentes/inválidos, stock insuficiente |
+| `WARN` | Consultas SQL lentas (> 2 s, logger `org.hibernate.SQL_SLOW`) |
+| `ERROR` | 5xx y excepciones no capturadas (con stacktrace y `requestId`) |
+| `ERROR` | Fallos de R2 y de inicialización de Firebase |
+
+> **Seguridad:** nunca se registran tokens JWT, claves privadas ni credenciales en los logs.
+
+### 12.4 Retención de logs (30 días)
+
+Los logs de producción se escriben en un archivo con rotación diaria y **eliminación automática de los archivos con más de 30 días**:
+
+| Parámetro | Valor | Descripción |
+|---|---|---|
+| `maxHistory` | `30` | Elimina los archivos de log con más de 30 días |
+| `totalSizeCap` | `1GB` | Tope de espacio total en disco |
+| `maxFileSize` | `100MB` | Cada archivo diario se parte si supera 100 MB |
+| Compresión | gzip | Los archivos rotados se comprimen (`*.json.gz`, ~85 % menos espacio) |
+
+**Ubicación (Docker):** volumen `dcava_logs_data` montado en `/app/logs`:
+
+```
+/app/logs/dcava-backend.log                      # log activo
+/app/logs/dcava-backend.2026-08-14.0.json.gz     # rotación diaria comprimida
+```
+
+**Variables de entorno opcionales:** `LOG_DIR` (directorio, por defecto `logs`) y `LOG_FILE` (nombre base, por defecto `dcava-backend`).
+
+### 12.5 Límites del driver de Docker
+
+El `docker-compose.yml` limita el almacenamiento del driver `json-file` (stdout) para evitar llenar el disco:
+
+| Opción | Valor |
+|---|---|
+| `max-size` | `10m` (10 MB por archivo) |
+| `max-file` | `3` (máximo 3 archivos) |
+| `compress` | `true` |
+
+> **Nota:** Docker solo permite limitar por tamaño, no por tiempo. La retención de 30 días la gestiona el propio backend (Logback) sobre los archivos.
+
+### 12.6 Consultar logs
+
+```bash
+# Últimos logs en vivo
+docker logs -f dcava-backend
+
+# Solo errores y advertencias (JSON → texto plano con jq)
+docker logs dcava-backend | jq -r 'select(.level=="ERROR" or .level=="WARN")'
+
+# Todos los logs de una petición concreta
+docker logs dcava-backend | jq -r 'select(.requestId=="<uuid>")'
+
+# Logs de un usuario concreto
+docker logs dcava-backend | jq -r 'select(.uid=="<firebase-uid>")'
 ```
 
 ---

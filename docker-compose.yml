@@ -53,12 +53,20 @@ services:
       DATABASE_PASSWORD: ${APP_DB_PASSWORD}
       PORT: ${APP_PORT}
       JAVA_OPTS: "-Xms128m -Xmx384m -XX:+UseSerialGC"
+      LOG_DIR: /app/logs
     ports:
       # Restringido a localhost
       - "127.0.0.1:${APP_PORT}:8080"
     depends_on:
       mysql:
         condition: service_healthy
+    # Límites del driver json-file (docker logs): evita que el disco se llene
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
     deploy:
       resources:
         limits:
@@ -67,6 +75,7 @@ services:
           memory: 256M
     volumes:
       - uploads-data:/app/uploads
+      - logs-data:/app/logs
 
 # ---------- Volúmenes persistentes ----------
 volumes:
@@ -74,3 +83,5 @@ volumes:
     name: dcava_mysql_data
   uploads-data:
     name: dcava_uploads_data
+  logs-data:
+    name: dcava_logs_data

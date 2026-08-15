@@ -22,6 +22,9 @@ WORKDIR /app
 # Directorio para archivos estáticos locales (uploads)
 RUN mkdir -p /app/uploads
 
+# Directorio para los archivos de log (retención de 30 días gestionada por Logback)
+RUN mkdir -p /app/logs
+
 # Copiar el JAR compilado desde la etapa de build
 COPY --from=build /app/target/dcava-backend-*.jar app.jar
 
@@ -30,4 +33,3 @@ EXPOSE 8080
 
 # Ejecutar la aplicación
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-

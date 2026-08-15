@@ -4,6 +4,8 @@ import com.dcava.dcava_backend.dto.category.CategoryView;
 import com.dcava.dcava_backend.model.Category;
 import com.dcava.dcava_backend.repository.CategoryRepository;
 import com.dcava.dcava_backend.config.AppProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -16,6 +18,8 @@ import java.util.Locale;
 
 @Service
 public class CategoryImageService {
+
+    private static final Logger log = LoggerFactory.getLogger(CategoryImageService.class);
 
     private final CategoryRepository categoryRepository;
     private final S3Client r2Client;
@@ -71,7 +75,12 @@ public class CategoryImageService {
                     .build();
 
             r2Client.putObject(request, RequestBody.fromBytes(bytes));
+            log.info("Category image uploaded to R2: categoryId={} key={} sizeBytes={}",
+                    categoryId, r2Key, bytes.length);
         } catch (S3Exception e) {
+            log.error("R2 upload failed: categoryId={} bucket={} key={} error={}",
+                    categoryId, appProperties.getR2().getBucket(), r2Key,
+                    e.awsErrorDetails().errorMessage(), e);
             throw new RuntimeException("Error uploading category image to R2: "
                     + e.awsErrorDetails().errorMessage(), e);
         }
@@ -81,6 +90,7 @@ public class CategoryImageService {
         category.setImageUrl(dbPath);
 
         Category saved = categoryRepository.save(category);
+        log.info("Category image saved: categoryId={} slug={}", saved.getId(), saved.getSlug());
 
         return new CategoryView(saved.getId(), saved.getName(), saved.getSlug(),
                 saved.getDescription(), toPublicUrl(saved.getImageUrl()));
